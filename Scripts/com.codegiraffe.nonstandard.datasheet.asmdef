@@ -1,0 +1,18 @@
+{
+    "name": "com.codegiraffe.nonstandard.datasheet",
+    "rootNamespace": "",
+    "references": [
+        "GUID:285d4e70383d86c43981c67774cbfd6d",
+        "GUID:967f836868f94d1418412ea7c9d893c1",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

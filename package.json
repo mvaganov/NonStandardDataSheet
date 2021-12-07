@@ -1,0 +1,19 @@
+{
+  "name": "com.codegiraffe.nonstandard.datasheet",
+  "version": "1.0.0",
+  "displayName": "NonStandard DataSheet",
+  "description": "* work-in-progress library to turn any List of objects into a spreadsheet",
+  "unity": "2017.1",
+  "keywords": [
+    "library",
+    "utility",
+    "scripting",
+    "extensions"
+  ],
+  "author": {
+    "name": "Michael Vaganov",
+    "email": "mvaganov@hotmail.com",
+    "url": "http://www.codegiraffe.com"
+  },
+  "type": "library"
+}
