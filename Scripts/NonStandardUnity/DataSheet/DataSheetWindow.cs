@@ -19,10 +19,12 @@ namespace NonStandard.GameUi.DataSheet {
 
 		#if UNITY_EDITOR
 		private void OnValidate() {
-			titleTextObj.text = title;
-			iconObj.sprite = icon;
-			dataSheetObj.dataPopulator = dataPopulator;
-			dataSheetObj.columnSetup = columnSetup;
+			if (titleTextObj != null) titleTextObj.text = title;
+			if (iconObj != null) iconObj.sprite = icon;
+			if (dataSheetObj != null) {
+				dataSheetObj.dataPopulator = dataPopulator;
+				dataSheetObj.columnSetup = columnSetup;
+			}
 		}
 #endif
 
