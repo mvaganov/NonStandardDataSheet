@@ -48,7 +48,7 @@ namespace NonStandard.Data {
 				validating = true;
 #endif
 				// TODO make this work better... currently giving strings without quotes
-				Proc.Delay(0, () => { values = dict.Show(true); validating = false; });
+				Proc.Delay(0, () => { values = dict.Show(true); });
 #if UNITY_EDITOR
 			}
 #endif
