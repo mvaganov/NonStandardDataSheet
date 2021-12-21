@@ -80,6 +80,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public string columnSetup;
 		public UnityEvent_List_object dataPopulator = new UnityEvent_List_object();
 		Vector2 contentAreaSize;
+		bool needsRefresh;
 		public int Count => data.rows.Count;
 
 		public int GetRowIndex(GameObject rowObject) {
@@ -134,7 +135,9 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			RefreshHeaders();
 		}
-
+		public void QueueRefresh() {
+			needsRefresh = true;
+		}
 		public void RefreshData() {
 			// get the data
 			List<object> objects = new List<object>();
@@ -279,8 +282,14 @@ namespace NonStandard.GameUi.DataSheet {
 			//CodeConvert.TryParse(test, out object obj);
 			//Show.Log(obj.Stringify(pretty:true));
 		}
+        private void Update() {
+            if (needsRefresh) {
+				needsRefresh = false;
+				RefreshData();
+			}
+        }
 
-		public void Load(List<object> source) {
+        public void Load(List<object> source) {
 			//list = source;
 			data.InitData(source, errLog);
 			if (errLog.HasError()) { popup.Set("err", null, errLog.GetErrorString()); return; }
