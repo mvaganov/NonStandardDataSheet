@@ -6,9 +6,10 @@
   "unity": "2017.1",
   "dependencies": {
     "com.unity.textmeshpro": "3.0.6",
+    "com.codegiraffe.nonstandard.unityutility": "1.0.0",
     "com.codegiraffe.nonstandard.system": "1.0.0",
-	"com.codegiraffe.nonstandard.scripting": "1.0.0",
-	"com.codegiraffe.nonstandard.eventbind": "1.0.0"
+    "com.codegiraffe.nonstandard.scripting": "1.0.0",
+    "com.codegiraffe.nonstandard.eventbind": "1.0.0"
   },
   "keywords": [
     "library",

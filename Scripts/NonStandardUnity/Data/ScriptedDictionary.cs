@@ -55,7 +55,7 @@ namespace NonStandard.Data {
 		}
 		public StringEvent dictionaryTostringChangeListener;
 		public ScriptedDictionary GetVars(string name) {
-			ScriptedDictionaryManager m = Global.Get<ScriptedDictionaryManager>();
+			ScriptedDictionaryManager m = Global.GetComponent<ScriptedDictionaryManager>();
 			if (m == null) return null;
 			return m.Find(other => other.name == name);
 		}

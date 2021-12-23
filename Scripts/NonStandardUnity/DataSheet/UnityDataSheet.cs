@@ -81,6 +81,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public UnityEvent_List_object dataPopulator = new UnityEvent_List_object();
 		Vector2 contentAreaSize;
 		bool needsRefresh;
+		bool debugNoisy;
 		public int Count => data.rows.Count;
 
 		public int GetRowIndex(GameObject rowObject) {
@@ -381,7 +382,10 @@ namespace NonStandard.GameUi.DataSheet {
 				}
 				rowCursor.x += w * rt.localScale.x;
 			}
-			for(int i = 0; i < unusedColumns.Count; ++i) { Destroy(unusedColumns[i]); }
+			for(int i = 0; i < unusedColumns.Count; ++i) {
+				Debug.Log("destroying "+unusedColumns[i].name);
+				Destroy(unusedColumns[i].gameObject);
+			}
 			unusedColumns.Clear();
 			rect = rObj.GetComponent<RectTransform>();
 			rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, rowCursor.x);
@@ -511,15 +515,23 @@ namespace NonStandard.GameUi.DataSheet {
 				for(int i = contentRectangle.childCount-1; i >= data.rows.Count; --i) {
 					DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
 					srcToRowUiMap.Remove(rObj.obj);
-					unused.Add(rObj);
+					if (!unused.Contains(rObj)) {
+						unused.Add(rObj);
+					}
 				}
-				Show.Log("deleting extra elements: " + unused.JoinToString(", ", go=> {
-					DataSheetRow ro = go.GetComponent<DataSheetRow>();
-					if (ro == null) return "<null>";
-					if (ro.obj == null) return "<null obj>";
-					return ro.obj.ToString();
-				}));
-				unused.ForEach(go => { go.transform.SetParent(null); Destroy(go); });
+				if (debugNoisy) {
+					Show.Log("deleting extra elements: " + unused.JoinToString(", ", go => {
+						DataSheetRow ro = go.GetComponent<DataSheetRow>();
+						if (ro == null) return "<null>";
+						if (ro.obj == null) return "<null obj>";
+						return ro.obj.ToString();
+					}));
+				}
+				for(int i = unused.Count-1; i >= 0; --i) {
+					unused[i].transform.SetParent(null);
+					Destroy(unused[i].gameObject);
+				}
+				unused.Clear();
 			}
 			contentAreaSize.y = -cursor.y;
 			contentRectangle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -cursor.y);
@@ -536,6 +548,9 @@ namespace NonStandard.GameUi.DataSheet {
 		public int IndexOf(Func<object, bool> predicate) { return data.IndexOf(predicate); }
 		public void RefreshRowAndColumnUi() {
 			RefreshRowUi();
+			if (data.rows.Count != contentRectangle.childCount) {
+				Debug.LogWarning($"contentRectangle ({contentRectangle.childCount}) does not reflect data.rows ({data.rows.Count})");
+            }
 			float y = 0;
 			for (int i = 0; i < data.rows.Count; ++i) {
 				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
