@@ -460,37 +460,41 @@ namespace NonStandard.GameUi.DataSheet {
 		/// </summary>
 		public Dictionary<object, DataSheetRow> RefreshRowUi() {
 			// map list elements to row UI
-			Dictionary<object, DataSheetRow> srcToRowUiMap = new Dictionary<object, DataSheetRow>();
+			Dictionary<object, DataSheetRow> oldMap = new Dictionary<object, DataSheetRow>();
 			for (int i = 0; i < contentRectangle.childCount; ++i) {
 				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
 				if (rObj == null) { continue; }
 				if (rObj.obj == null) {
 					throw new Exception("found a row (" + rObj.transform.HierarchyPath() + ") without source object at index "+i);
 				}
-				if (srcToRowUiMap.TryGetValue(rObj.obj, out DataSheetRow uiElement)) {
+				if (oldMap.TryGetValue(rObj.obj, out DataSheetRow uiElement)) {
 					throw new Exception("multiple row elements for row " + i + ": " + rObj.obj);
 				}
-				srcToRowUiMap[rObj.obj] = rObj;
+				oldMap[rObj.obj] = rObj;
 			}
 			List<DataSheetRow> unused = new List<DataSheetRow>();
-			// check to see if any of the UI rows are not being used by the datasheet (should be removed or replaced)
-			Dictionary<object, DataSheetRow> unusedMapping = srcToRowUiMap.Copy();
+			// check to see if any of the UI rows are not being used by the datasheet by identifying which ones are used for sure
+			Dictionary<object, DataSheetRow> usedMapping = new Dictionary<object, DataSheetRow>();
+			//List<object> missing = new List<object>();
 			for (int i = 0; i < data.rows.Count; ++i) {
 				RowData rd = data.rows[i];
-				if (unusedMapping.TryGetValue(rd.obj, out DataSheetRow found)) {
-					unusedMapping.Remove(rd.obj);
-				}
+				if (oldMap.TryGetValue(rd.obj, out DataSheetRow foundRow)) {
+					usedMapping[rd.obj] = foundRow;
+                }
+				//else { missing.Add(rd.obj); }
 			}
-			foreach (KeyValuePair<object, DataSheetRow> kvp in unusedMapping) {
-				unused.Add(kvp.Value);
-				srcToRowUiMap.Remove(kvp.Key);
+			for (int i = 0; i < contentRectangle.childCount; ++i) {
+				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+				if (!usedMapping.TryGetValue(rObj.obj, out DataSheetRow foundRow)) {
+					unused.Add(rObj);
+                }
 			}
 			Vector2 cursor = Vector2.zero;
 			// go through all of the row elements and put the row UI elements in the correct spot
 			for(int i = 0; i < data.rows.Count; ++i) {
 				RowData rd = data.rows[i];
 				// if this row data is missing a UI element
-				if (!srcToRowUiMap.TryGetValue(rd.obj, out DataSheetRow rObj)) {
+				if (!usedMapping.TryGetValue(rd.obj, out DataSheetRow rObj)) {
 					// use one of the unused elements if there is one
 					if (unused.Count > 0) {
 						rObj = unused[unused.Count - 1];
@@ -501,7 +505,7 @@ namespace NonStandard.GameUi.DataSheet {
 						rObj = CreateRow(data.rows[i], -cursor.y);
 					}
 					rObj.transform.SetParent(contentRectangle);
-					srcToRowUiMap[rObj.obj] = rObj;
+					usedMapping[rObj.obj] = rObj;
 				}
 				rObj.transform.SetSiblingIndex(i);
 				RectTransform rect = rObj.GetComponent<RectTransform>();
@@ -514,7 +518,7 @@ namespace NonStandard.GameUi.DataSheet {
 				// remove them in reverse order, should be slightly faster
 				for(int i = contentRectangle.childCount-1; i >= data.rows.Count; --i) {
 					DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
-					srcToRowUiMap.Remove(rObj.obj);
+					oldMap.Remove(rObj.obj);
 					if (!unused.Contains(rObj)) {
 						unused.Add(rObj);
 					}
@@ -535,7 +539,7 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			contentAreaSize.y = -cursor.y;
 			contentRectangle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -cursor.y);
-			return srcToRowUiMap;
+			return usedMapping;
 		}
 		public void SetSortState(int column, SortState sortState) {
 			RefreshRowAndColumnUi();
