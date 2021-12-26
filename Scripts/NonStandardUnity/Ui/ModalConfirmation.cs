@@ -1,5 +1,4 @@
-﻿using NonStandard.Utility.UnityEditor;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -46,7 +45,7 @@ public class ModalConfirmation : MonoBehaviour {
 		public Entry(string text, object target, string methodName, bool valuePersists = true) {
 			if (!string.IsNullOrEmpty(methodName)) {
 				selectionAction = new UnityEvent();
-				EventBind.On(selectionAction, target, methodName);
+				NonStandard.EventBind.On(selectionAction, target, methodName);
 			}
 			this.text = text;
 			eventOnly = !valuePersists;
