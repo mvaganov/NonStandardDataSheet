@@ -276,9 +276,8 @@ namespace NonStandard.GameUi.DataSheet {
 				}
 			}
 			Init();
-			Proc.Enqueue(() => {
-				RefreshData();
-			});
+			QueueRefresh();
+			//Proc.Enqueue(() => { RefreshData(); });
 			//string test = "{a:1,b:[a,[1,2],{a:a,b:[b]}],c:{a:1,b:2}}";
 			//CodeConvert.TryParse(test, out object obj);
 			//Show.Log(obj.Stringify(pretty:true));

@@ -27,6 +27,9 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 		}
 #endif
+		public void Refresh() {
+			dataSheetObj.QueueRefresh();
+        }
 
 		/// <summary>
 		/// example of a <see cref="UnityEvent_List_object"/>, giving a list of transforms
