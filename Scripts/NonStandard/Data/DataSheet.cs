@@ -2,6 +2,7 @@
 using NonStandard.Extension;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace NonStandard.Data {
@@ -60,6 +61,10 @@ namespace NonStandard.Data {
 			/// if the <see cref="_fieldToken"/> is an if-statement, then the field needs to be re-evaluated for each row.
 			/// </summary>
 			public bool mustReEvauluateFieldBecauseOfConditionalLogic;
+			/// <summary>
+			/// if the <see cref="_fieldToken"/> has an untyped <see cref="object"/> in the member path, then the field path needs to be re-evaluated for each row.
+			/// </summary>
+			public bool mustReEvauluateFieldPathBecauseOfConditionalLogic;
 			/// <summary>
 			/// the edit path is loaded if no edit path exists when values change
 			/// </summary>
@@ -125,6 +130,11 @@ namespace NonStandard.Data {
 					return null;
 				}
 				editPath = compiledPath;
+				for (int i = 0; i < editPath.Count; ++i) {
+					if (editPath[i] is FieldInfo fi && fi.FieldType == typeof(object)) {
+						mustReEvauluateFieldPathBecauseOfConditionalLogic = true;
+					}
+				}
 				//ReflectionParseExtension.TryGetValueCompiledPath(scope, editPath, out result);
 				//Show.Log("compiled " + editPath.JoinToString(",",o=>o?.GetType()?.ToString() ?? "???")+" : "+result);
 				needsToLoadEditPath = false;
@@ -136,7 +146,12 @@ namespace NonStandard.Data {
 
 			public object GetValue(ITokenErrLog errLog, object scope) {
 				object result;
-				if (mustReEvauluateFieldBecauseOfConditionalLogic) {
+				if (mustReEvauluateFieldPathBecauseOfConditionalLogic) {
+					RefreshEditPath(false, scope, errLog);
+					result = CompileEditPath(scope, errLog);
+					if (errLog != null && errLog.HasError()) { return null; }
+					return FilterType(result);
+				} else if (mustReEvauluateFieldBecauseOfConditionalLogic) {
 					RefreshEditPath(false, scope, errLog);
 					if (errLog != null && errLog.HasError()) { return null; }
 				}

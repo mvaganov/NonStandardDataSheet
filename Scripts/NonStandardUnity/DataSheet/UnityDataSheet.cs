@@ -282,14 +282,14 @@ namespace NonStandard.GameUi.DataSheet {
 			//CodeConvert.TryParse(test, out object obj);
 			//Show.Log(obj.Stringify(pretty:true));
 		}
-        private void Update() {
-            if (needsRefresh) {
+		private void Update() {
+			if (needsRefresh) {
 				needsRefresh = false;
 				RefreshData();
 			}
-        }
+		}
 
-        public void Load(List<object> source) {
+		public void Load(List<object> source) {
 			//list = source;
 			data.InitData(source, errLog);
 			if (errLog.HasError()) { popup.Set("err", null, errLog.GetErrorString()); return; }
@@ -297,17 +297,17 @@ namespace NonStandard.GameUi.DataSheet {
 			popup.Hide();
 		}
 
-		DataSheetRow CreateRow(RowData rowData, float yPosition = float.NaN) {
+		DataSheetRow CreateRow(int rowIndex, RowData rowData, float yPosition = float.NaN) {
 			GameObject rowUi = Instantiate(uiPrototypes.dataSheetRow.gameObject);
 			DataSheetRow rObj = rowUi.GetComponent<DataSheetRow>();
 			if (rObj == null) { throw new Exception("RowUI prefab must have " + nameof(DataSheetRow) + " component"); }
 			rObj.rowData = rowData;
 			if (rObj.rowData == null) { throw new Exception("something bad. where is the object that this row is for?"); }
 			rowUi.SetActive(true);
-			UpdateRowData(rObj, rowData, yPosition);
+			UpdateRowData(rObj, rowIndex, rowData, yPosition);
 			return rObj;
 		}
-		public GameObject UpdateRowData(DataSheetRow rObj, RowData rowData, float yPosition = float.NaN) {
+		public GameObject UpdateRowData(DataSheetRow rObj, int rowIndex, RowData rowData, float yPosition = float.NaN, bool alsoCalculateColumns = true) {
 			object[] columns = rowData.columns;
 			Vector2 rowCursor = Vector2.zero;
 			RectTransform rect;
@@ -366,7 +366,10 @@ namespace NonStandard.GameUi.DataSheet {
 				fieldUi.SetActive(true);
 				fieldUi.transform.SetParent(rObj.transform, false);
 				fieldUi.transform.SetSiblingIndex(c);
+				//columns[c] = data.RefreshValue(rowIndex, c, errLog);
+				//if (errLog.HasError()) { throw new Exception(errLog.GetErrorString()); }
 				object value = columns[c];
+				//Debug.Log("  "+value+" ::::: "+data.columnSettings[c].editPath?.JoinToString() ?? "NOPATH?"); // TODO why is this a different (wrong) value if it is not the first element in the table?
 				if (value != null) {
 					UiText.SetText(fieldUi, value.ToString());
 				} else {
@@ -479,14 +482,14 @@ namespace NonStandard.GameUi.DataSheet {
 				RowData rd = data.rows[i];
 				if (oldMap.TryGetValue(rd.obj, out DataSheetRow foundRow)) {
 					usedMapping[rd.obj] = foundRow;
-                }
+				}
 				//else { missing.Add(rd.obj); }
 			}
 			for (int i = 0; i < contentRectangle.childCount; ++i) {
 				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
 				if (!usedMapping.TryGetValue(rObj.obj, out DataSheetRow foundRow)) {
 					unused.Add(rObj);
-                }
+				}
 			}
 			Vector2 cursor = Vector2.zero;
 			// go through all of the row elements and put the row UI elements in the correct spot
@@ -498,10 +501,10 @@ namespace NonStandard.GameUi.DataSheet {
 					if (unused.Count > 0) {
 						rObj = unused[unused.Count - 1];
 						unused.RemoveAt(unused.Count - 1);
-						UpdateRowData(rObj, rd, -cursor.y);
+						UpdateRowData(rObj, i, rd, -cursor.y);
 					} else {
 						// create he UI element, and put it into the content rectangle
-						rObj = CreateRow(data.rows[i], -cursor.y);
+						rObj = CreateRow(i, data.rows[i], -cursor.y);
 					}
 					rObj.transform.SetParent(contentRectangle);
 					usedMapping[rObj.obj] = rObj;
@@ -553,13 +556,14 @@ namespace NonStandard.GameUi.DataSheet {
 			RefreshRowUi();
 			if (data.rows.Count != contentRectangle.childCount) {
 				Debug.LogWarning($"contentRectangle ({contentRectangle.childCount}) does not reflect data.rows ({data.rows.Count})");
-            }
-			float y = 0;
-			for (int i = 0; i < data.rows.Count; ++i) {
-				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
-				UpdateRowData(rObj, data.rows[i], y);
-				y += rObj.GetComponent<RectTransform>().rect.height;
 			}
+			// for some reason, everything was recalculated at one point?
+			//float y = 0;
+			//for (int i = 0; i < data.rows.Count; ++i) {
+			//	DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+			//	UpdateRowData(rObj, data.rows[i], y, false); // no need to update row data again, it was done with RefreshRowUi()
+			//	y += rObj.GetComponent<RectTransform>().rect.height;
+			//}
 		}
 		public void Sort() {
 			RefreshRowAndColumnUi();
