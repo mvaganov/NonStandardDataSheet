@@ -44,13 +44,16 @@ namespace NonStandard.Data {
 			/// data sheet that this column belongs to
 			/// </summary>
 			internal DataSheet<MetaData> dataSheet;
+			/// <summary>
+			/// which field is displayed in this column? can include if statement logic.
+			/// </summary>
 			private Token _fieldToken;
 			/// <summary>
 			/// what field is being read (or modified) in this column
 			/// </summary>
 			public Token fieldToken { get => _fieldToken; set { SetFieldToken(value, null); } }
 			/// <summary>
-			/// if this field is editable, this list of members will be used to edit
+			/// the data path as it is accessed from the object that each row has data for
 			/// </summary>
 			public List<object> editPath;
 			/// <summary>
@@ -90,8 +93,6 @@ namespace NonStandard.Data {
 			/// </summary>
 			public object defaultValue = null; // TODO make this a Token that supports if-statements, like _fieldToken
 
-			// TODO onClick, a string to parse as a function to execute
-
 			/// <summary>
 			/// set the script that determines what the values in this column are
 			/// </summary>
@@ -130,8 +131,9 @@ namespace NonStandard.Data {
 					return null;
 				}
 				editPath = compiledPath;
+				// check if the path has a member with members that can't be reasonably predicted
 				for (int i = 0; i < editPath.Count; ++i) {
-					if (editPath[i] is FieldInfo fi && fi.FieldType == typeof(object)) {
+					if (editPath[i] is FieldInfo fi && (fi.FieldType == typeof(object) || fi.FieldType.IsAbstract)) {
 						mustReEvauluateFieldPathBecauseOfConditionalLogic = true;
 					}
 				}
