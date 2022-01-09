@@ -112,10 +112,10 @@ namespace NonStandard.Ui {
 		public static void UiTextUpdate(TMP_Dropdown dd) {
 			UiText onSelection = dd.GetComponent<UiText>();
 			if (onSelection == null) return;
-			UnityEvent_string setText = onSelection.setText;
+			UiText.UnityEvent_string setText = onSelection.setText;
 			HandleDropdown(dd.value, dd, setText);
 		}
-		public static void HandleDropdown(int index, TMP_Dropdown dd, UnityEvent_string stringNotify) {
+		public static void HandleDropdown(int index, TMP_Dropdown dd, UiText.UnityEvent_string stringNotify) {
 			if (stringNotify.GetPersistentEventCount() == 0) { return; }
 			if (index >= 0 && index < dd.options.Count) {
 				TMP_Dropdown.OptionData o = dd.options[index];

@@ -1,15 +1,15 @@
 {
   "name": "com.codegiraffe.nonstandard.datasheet",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "displayName": "NonStandard DataSheet",
   "description": "* work-in-progress library to turn any List of objects into a spreadsheet",
-  "unity": "2017.1",
+  "unity": "2019.4",
   "dependencies": {
     "com.unity.textmeshpro": "3.0.6",
-    "com.codegiraffe.nonstandard.unityutility": "1.0.0",
-    "com.codegiraffe.nonstandard.system": "1.0.0",
-    "com.codegiraffe.nonstandard.scripting": "1.0.0",
-    "com.codegiraffe.nonstandard.eventbind": "1.0.0"
+    "com.codegiraffe.nonstandard.unityutility": "0.0.1",
+    "com.codegiraffe.nonstandard.system": "0.0.1",
+    "com.codegiraffe.nonstandard.scripting": "0.0.1",
+    "com.codegiraffe.nonstandard.eventbind": "0.0.1"
   },
   "keywords": [
     "library",
