@@ -31,6 +31,7 @@ namespace NonStandard.Data {
 		/// </summary>
 		protected List<KV> orderedPairs = new List<KV>();
 		// TODO prototype fallback dictionary, like EcmaScript
+		//public IDictionary<KEY, VAL> _fallback = null;
 		public enum ResultOfAssigningToFunction { ThrowException, Ignore, OverwriteFunction }
 		public ResultOfAssigningToFunction onAssignmentToFunction = ResultOfAssigningToFunction.ThrowException;
 		public void FunctionAssignIgnore() { onAssignmentToFunction = ResultOfAssigningToFunction.Ignore; }
