@@ -1,4 +1,5 @@
-﻿using NonStandard.Data;
+﻿// code by michael vaganov, released to the public domain via the unlicense (https://unlicense.org/)
+using NonStandard.Data;
 using NonStandard.Extension;
 using System.Collections.Generic;
 using TMPro;
@@ -37,7 +38,7 @@ namespace NonStandard.GameUi.DataSheet {
 		/// <param name="manifest"></param>
 		public void PopulateManifest(List<object> manifest) {
 			transform.PopulateManifest(manifest);
-        }
+		}
 
 		public string Title {
 			get => titleTextObj.text;
