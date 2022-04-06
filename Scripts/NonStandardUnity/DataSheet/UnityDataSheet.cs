@@ -140,46 +140,68 @@ namespace NonStandard.GameUi.DataSheet {
 			needsRefresh = true;
 		}
 		public void RefreshData() {
-			// get the data
+			List<object> objects = GetObjects();
+			HashSet<object> objectsToFilterOut = GetManifestOfObjectsInUi();
+			Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
+			RemoveUiFor(objectsToFilterOut);
+			AddUiForObjectsInOrder(toAdd);
+			FullRefresh();
+			//data.Clear();
+			//Load(objects);
+		}
+
+		public List<object> GetObjects() {
 			List<object> objects = new List<object>();
 			dataPopulator.Invoke(objects);
-			for(int i = objects.Count-1; i >= 0; --i) {
+			for (int i = objects.Count - 1; i >= 0; --i) {
 				if (objects[i] == null) {
-					Show.Warning("{" + EventBind.DebugPrint(dataPopulator)+"}["+i+"] is null. removing it");
+					Show.Warning("{" + EventBind.DebugPrint(dataPopulator) + "}[" + i + "] is null. removing it");
 					objects.RemoveAt(i);
 				}
 			}
-			// take stock of what objects are here
+			return objects;
+		}
+
+		public HashSet<object> GetManifestOfObjectsInUi() {
 			HashSet<object> manifest = new HashSet<object>();
-			for(int i = 0; i < data.rows.Count; ++i) {
+			for (int i = 0; i < data.rows.Count; ++i) {
 				object o = data.rows[i].obj;
 				if (o != null) {
-					if (manifest.Contains(o)) { throw new Exception("old data contains duplicate "+o+" at index "+i); }
+					if (manifest.Contains(o)) { throw new Exception("old data contains duplicate " + o + " at index " + i); }
 					manifest.Add(o);
 				}
 			}
-			// now check which ones are not in the new list, and which ones are missing in the new list
+			return manifest;
+		}
+
+		private Dictionary<object,int> ProcessChangesNeededToUi(List<object> expectedListing, HashSet<object> filterExistingOut) {
 			Dictionary<object, int> toAdd = new Dictionary<object, int>();
-			for (int i = 0; i < objects.Count; ++i) {
-				object o = objects[i];
-				if (!manifest.Contains(o)) {
-					if (toAdd.TryGetValue(o, out int index)) { throw new Exception("new data contains duplicate " + o + " at index " + 
-						index+ " and index " + i); }
+			for (int i = 0; i < expectedListing.Count; ++i) {
+				object o = expectedListing[i];
+				if (!filterExistingOut.Contains(o)) {
+					if (toAdd.TryGetValue(o, out int index)) {
+						throw new Exception("new data contains duplicate " + o + " at index " + index + " and index " + i);
+					}
 					toAdd[o] = i;
 				} else {
-					manifest.Remove(o);
+					filterExistingOut.Remove(o);
 				}
 			}
-			// remove the old values that are not in the new set
-			for(int i = data.rows.Count-1; i >= 0; --i) {
-				if (manifest.Contains(data.rows[i].obj)) {
+			return toAdd;
+		}
+
+		public void RemoveUiFor(HashSet<object> objectsToFilterOut) {
+			for (int i = data.rows.Count - 1; i >= 0; --i) {
+				if (objectsToFilterOut.Contains(data.rows[i].obj)) {
 					data.rows.RemoveAt(i);
 				}
 			}
-			// add the new values that should be in the new set, in the order they appeared from the new data
+		}
+
+		public void AddUiForObjectsInOrder(Dictionary<object,int> toAdd) {
 			List<KeyValuePair<object, int>> values = toAdd.GetPairs();
 			values.Sort((a, b) => a.Value.CompareTo(b.Value));
-			for(int i = 0; i < values.Count; ++i) {
+			for (int i = 0; i < values.Count; ++i) {
 				int index = values[i].Value;
 				if (index < data.rows.Count) {
 					data.InsertRow(index, values[i].Key);
@@ -187,9 +209,6 @@ namespace NonStandard.GameUi.DataSheet {
 					data.AddRow(values[i].Key);
 				}
 			}
-			FullRefresh();
-			//data.Clear();
-			//Load(objects);
 		}
 
 		public void RefreshHeaders() {
