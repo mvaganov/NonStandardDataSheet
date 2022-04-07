@@ -21,11 +21,11 @@ namespace NonStandard.Data {
 		public object[] columns;
 		public RowData(object model, object[] columns) { this.obj = model; this.columns = columns; }
 	}
-	public class DataSheet : DataSheet<ColumnData> {
+	public class DataSheet : DataSheetBase<ColumnData> {
 		public DataSheet() : base() { }
 	}
 	public enum SortState { None, Ascending, Descening, Count }
-	public class DataSheet<MetaData> where MetaData : new() {
+	public class DataSheetBase<MetaData> where MetaData : new() {
 		/// <summary>
 		/// the actual data
 		/// </summary>
@@ -43,7 +43,7 @@ namespace NonStandard.Data {
 			/// <summary>
 			/// data sheet that this column belongs to
 			/// </summary>
-			internal DataSheet<MetaData> dataSheet;
+			internal DataSheetBase<MetaData> dataSheet;
 			/// <summary>
 			/// which field is displayed in this column? can include if statement logic.
 			/// </summary>
@@ -293,10 +293,10 @@ namespace NonStandard.Data {
 				}
 				return true;
 			}
-			public ColumnSetting(DataSheet<MetaData> dataSheet) { this.dataSheet = dataSheet; }
+			public ColumnSetting(DataSheetBase<MetaData> dataSheet) { this.dataSheet = dataSheet; }
 		}
 
-		public DataSheet() { }
+		public DataSheetBase() { }
 
 		/// <param name="row"></param>
 		/// <param name="col"></param>
@@ -323,6 +323,19 @@ namespace NonStandard.Data {
 				}
 			}
 			return null;
+		}
+		public void RefreshRowData(RowData rd, List<ColumnSetting> columnSettings, ITokenErrLog errLog = null) {
+			for (int i = 0; i < rd.columns.Length; i++) {
+				try {
+					object value = columnSettings[i].GetValue(errLog, rd.obj);
+					rd.columns[i] = value;
+				} catch (Exception e) {
+					string errorMessage = "could not set (" + columnSettings[i].editPath + "): " + e.ToString();
+					if (errLog != null) { errLog.AddError(-1, errorMessage); } else {
+						throw new Exception(errorMessage);
+					}
+				}
+			}
 		}
 		public void RefreshAll(ITokenErrLog errLog = null) {
 			for(int r = 0; r < rows.Count; ++r) {

@@ -26,7 +26,7 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			int col = transform.GetSiblingIndex();
 			int row = uds.GetRowIndex(transform.parent.gameObject);
-			Udash.ColumnSetting column = uds.GetColumn(col);
+			DataSheetUnityColumnData.ColumnSetting column = uds.GetColumn(col);
 			if (column.canEdit) {
 				object value = text;
 				bool validAssignment = true;

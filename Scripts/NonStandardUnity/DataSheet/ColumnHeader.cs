@@ -8,7 +8,7 @@ namespace NonStandard.GameUi.DataSheet {
 	public class ColumnHeader : MonoBehaviour {
 		[SerializeField] private ColumnHeaderEditor editUiPrefab;
 		//[ContextMenuItem("PopulateDropdown", "PopulateDropdown")] public GameObject editUi;
-		public Udash.ColumnSetting columnSetting;
+		public DataSheetUnityColumnData.ColumnSetting columnSetting;
 		// multiple different column headers can exist, each with its own ColumheaderEditor
 		static Dictionary<ColumnHeaderEditor, ColumnHeaderEditor> instanceOfPrefab = 
 			new Dictionary<ColumnHeaderEditor, ColumnHeaderEditor>();

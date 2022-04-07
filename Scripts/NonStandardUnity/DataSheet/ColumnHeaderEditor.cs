@@ -305,7 +305,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public void ColumnRemove() {
 			ModalConfirmation ui = confirmRemoveUi;
 			if (ui == null) { ui = Global.GetComponent<ModalConfirmation>(); }
-			Udash.ColumnSetting cS = uds.GetColumn(column);
+			DataSheetUnityColumnData.ColumnSetting cS = uds.GetColumn(column);
 			ui.OkCancel("Are you sure you want to delete column \"" + cS.data.label + "\"?", () => {
 				uds.RemoveColumn(column);
 				Close();

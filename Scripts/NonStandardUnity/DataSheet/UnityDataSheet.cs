@@ -66,12 +66,12 @@ namespace NonStandard.GameUi.DataSheet {
 		}
 		public void OnClick(BaseEventData bed) { OnClick(); }
 	}
-	public class Udash : DataSheet<UnityColumnData> { }
+	public class DataSheetUnityColumnData : DataSheetBase<UnityColumnData> { }
 	public class UnityDataSheet : MonoBehaviour {
 		const int columnTitleIndex = 0, uiTypeIndex = 1, valueIndex = 2, headerUiType = 3, columnWidth = 4, defaultValueIndex = 5;
 		public RectTransform headerRectangle;
 		public RectTransform contentRectangle;
-		public Udash data = new Udash();
+		public DataSheetUnityColumnData data = new DataSheetUnityColumnData();
 		public DataSheetStyleOptions uiPrototypes;
 		protected RectTransform rt;
 		internal TokenErrorLog errLog = new TokenErrorLog();
@@ -98,7 +98,7 @@ namespace NonStandard.GameUi.DataSheet {
 		}
 		private void Init() {
 			rt = GetComponent<RectTransform>();
-			data = new Udash();
+			data = new DataSheetUnityColumnData();
 			InitColumnSettings(columnSetup);
 		}
 		void InitColumnSettings(string columnSetup) {
@@ -114,7 +114,7 @@ namespace NonStandard.GameUi.DataSheet {
 			for (int i = 0; i < columns.Length; ++i) {
 				UnityColumnData c = columns[i];
 				c.typeOfValue = c.defaultValue != null ? c.defaultValue.GetType() : null;
-				Udash.ColumnSetting columnSetting = new Udash.ColumnSetting(data) {
+				DataSheetUnityColumnData.ColumnSetting columnSetting = new DataSheetUnityColumnData.ColumnSetting(data) {
 					//fieldToken = c.valueScript,
 					data = new UnityColumnData {
 						label = c.label,
@@ -140,14 +140,17 @@ namespace NonStandard.GameUi.DataSheet {
 			needsRefresh = true;
 		}
 		public void RefreshData() {
+			Debug.Log("REFRESH");
 			List<object> objects = GetObjects();
-			HashSet<object> objectsToFilterOut = GetManifestOfObjectsInUi();
-			Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
-			RemoveUiFor(objectsToFilterOut);
-			AddUiForObjectsInOrder(toAdd);
+			//HashSet<object> objectsToFilterOut = GetManifestOfObjectsInUi();
+			//Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
+			//string getName(object obj) { return (obj as UnityEngine.Object).name; }
+			//Debug.Log("REFRESH:\nadd "+toAdd.Keys.JoinToString(", ", getName) +"\nremove: "+objectsToFilterOut.JoinToString(", ", getName));
+			//RemoveUiFor(objectsToFilterOut);
+			//AddUiForObjectsInOrder(toAdd);
+			data.Clear();
+			Load(objects);
 			FullRefresh();
-			//data.Clear();
-			//Load(objects);
 		}
 
 		public List<object> GetObjects() {
@@ -178,7 +181,9 @@ namespace NonStandard.GameUi.DataSheet {
 			Dictionary<object, int> toAdd = new Dictionary<object, int>();
 			for (int i = 0; i < expectedListing.Count; ++i) {
 				object o = expectedListing[i];
-				if (!filterExistingOut.Contains(o)) {
+				bool objectIsMissingInUi = !filterExistingOut.Contains(o);
+				bool objectUiHasChanged = true; // TODO compare new values to currently displayed values
+				if (objectIsMissingInUi || objectUiHasChanged) {
 					if (toAdd.TryGetValue(o, out int index)) {
 						throw new Exception("new data contains duplicate " + o + " at index " + index + " and index " + i);
 					}
@@ -226,7 +231,7 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			errLog.ClearErrors();
 			for (int i = 0; i < data.columnSettings.Count; ++i) {
-				Udash.ColumnSetting colS = data.columnSettings[i];
+				DataSheetUnityColumnData.ColumnSetting colS = data.columnSettings[i];
 				GameObject header = null;
 				string headerObjName = colS.data.headerUi.ResolveString(errLog, this);
 				// check if the header we need is in the old header list
@@ -342,7 +347,7 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			TokenErrorLog errLog = new TokenErrorLog();
 			for (int c = 0; c < data.columnSettings.Count; ++c) {
-				Udash.ColumnSetting colS = data.columnSettings[c];
+				DataSheetUnityColumnData.ColumnSetting colS = data.columnSettings[c];
 				GameObject fieldUi = null;
 				string columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
 				if (columnUiName == null) {
@@ -476,23 +481,42 @@ namespace NonStandard.GameUi.DataSheet {
 			data.RemoveColumn(index);
 			RefreshUi();
 		}
+
+		public Dictionary<object, DataSheetRow> RefreshRowUi_HardReset
+															() {
+			for (int i = 0; i < contentRectangle.childCount; ++i) {
+				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+				if (rObj) {
+					rObj.transform.SetParent(null);
+					Destroy(rObj.gameObject);
+				}
+			}
+			Vector2 cursor = Vector2.zero;
+			Dictionary<object, DataSheetRow> usedMapping = new Dictionary<object, DataSheetRow>(); 
+			for (int i = 0; i < data.rows.Count; ++i) {
+				RowData rd = data.rows[i];
+				DataSheetRow rObj = CreateRow(i, data.rows[i], -cursor.y);
+				//Debug.Log("creating row for "+rd.obj);
+				rObj.transform.SetParent(contentRectangle);
+				usedMapping[rObj.obj] = rObj;
+			//	rObj.transform.SetSiblingIndex(i);
+				RectTransform rect = rObj.GetComponent<RectTransform>();
+				//rect.anchoredPosition = cursor;
+				//rect.localPosition = cursor;
+				rObj.LocalPosition = cursor;
+				cursor.y -= rect.rect.height;
+			}
+			contentAreaSize.y = -cursor.y;
+			contentRectangle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -cursor.y);
+			return usedMapping;
+		}
+
 		/// <summary>
 		/// uses a dictionary to quickly calculate UI elements for rows, and position them in the view
 		/// </summary>
-		public Dictionary<object, DataSheetRow> RefreshRowUi() {
-			// map list elements to row UI
-			Dictionary<object, DataSheetRow> oldMap = new Dictionary<object, DataSheetRow>();
-			for (int i = 0; i < contentRectangle.childCount; ++i) {
-				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
-				if (rObj == null) { continue; }
-				if (rObj.obj == null) {
-					throw new Exception("found a row (" + rObj.transform.HierarchyPath() + ") without source object at index "+i);
-				}
-				if (oldMap.TryGetValue(rObj.obj, out DataSheetRow uiElement)) {
-					throw new Exception("multiple row elements for row " + i + ": " + rObj.obj);
-				}
-				oldMap[rObj.obj] = rObj;
-			}
+		public Dictionary<object, DataSheetRow> RefreshRowUi//_TryToBeSmart
+															() {
+			Dictionary<object, DataSheetRow> oldMap = MapListElementsToRowUi();
 			List<DataSheetRow> unused = new List<DataSheetRow>();
 			// check to see if any of the UI rows are not being used by the datasheet by identifying which ones are used for sure
 			Dictionary<object, DataSheetRow> usedMapping = new Dictionary<object, DataSheetRow>();
@@ -527,6 +551,10 @@ namespace NonStandard.GameUi.DataSheet {
 					}
 					rObj.transform.SetParent(contentRectangle);
 					usedMapping[rObj.obj] = rObj;
+				} else {
+					// Debug.Log("reusing UI row for "+rd.obj);
+					data.RefreshRowData(rd, data.columnSettings);
+					UpdateRowData(rObj, i, rd, -cursor.y);
 				}
 				rObj.transform.SetSiblingIndex(i);
 				RectTransform rect = rObj.GetComponent<RectTransform>();
@@ -562,6 +590,21 @@ namespace NonStandard.GameUi.DataSheet {
 			contentRectangle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -cursor.y);
 			return usedMapping;
 		}
+		public Dictionary<object, DataSheetRow> MapListElementsToRowUi() {
+			Dictionary<object, DataSheetRow> oldMap = new Dictionary<object, DataSheetRow>();
+			for (int i = 0; i < contentRectangle.childCount; ++i) {
+				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+				if (rObj == null) { continue; }
+				if (rObj.obj == null) {
+					throw new Exception("found a row (" + rObj.transform.HierarchyPath() + ") without source object at index " + i);
+				}
+				if (oldMap.TryGetValue(rObj.obj, out DataSheetRow uiElement)) {
+					throw new Exception("multiple row elements for row " + i + ": " + rObj.obj);
+				}
+				oldMap[rObj.obj] = rObj;
+			}
+			return oldMap;
+		}
 		public void SetSortState(int column, SortState sortState) {
 			RefreshRowAndColumnUi();
 			data.SetSortState(column, sortState);
@@ -590,10 +633,10 @@ namespace NonStandard.GameUi.DataSheet {
 				RefreshRowUi();
 			}
 		}
-		public Udash.ColumnSetting GetColumn(int index) { return data.GetColumn(index); }
+		public DataSheetUnityColumnData.ColumnSetting GetColumn(int index) { return data.GetColumn(index); }
 
-		public Udash.ColumnSetting AddColumn() {
-			Udash.ColumnSetting column = new Udash.ColumnSetting(data) {
+		public DataSheetUnityColumnData.ColumnSetting AddColumn() {
+			DataSheetUnityColumnData.ColumnSetting column = new DataSheetUnityColumnData.ColumnSetting(data) {
 				fieldToken = new Token(""),
 				data = new UnityColumnData {
 					label = new Token("new data"),
@@ -611,7 +654,7 @@ namespace NonStandard.GameUi.DataSheet {
 		}
 
 		void MakeSureColumnsMarkedLastAreLast() {
-			List<Udash.ColumnSetting> moveToEnd = new List<DataSheet<UnityColumnData>.ColumnSetting>();
+			List<DataSheetUnityColumnData.ColumnSetting> moveToEnd = new List<DataSheetBase<UnityColumnData>.ColumnSetting>();
 			for (int i = 0; i < data.columnSettings.Count; ++i) {
 				if (data.columnSettings[i].data.alwaysLast) {
 					moveToEnd.Add(data.columnSettings[i]);
