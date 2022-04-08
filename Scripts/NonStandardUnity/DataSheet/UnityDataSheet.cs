@@ -1,4 +1,5 @@
-﻿using NonStandard.Data;
+﻿// code by michael vaganov, released to the public domain via the unlicense (https://unlicense.org/)
+using NonStandard.Data;
 using NonStandard.Data.Parse;
 using NonStandard.Extension;
 using NonStandard.Process;
@@ -140,16 +141,18 @@ namespace NonStandard.GameUi.DataSheet {
 			needsRefresh = true;
 		}
 		public void RefreshData() {
-			Debug.Log("REFRESH");
+			// TODO keep order of rows when refreshing
+			//Debug.Log("REFRESH");
 			List<object> objects = GetObjects();
-			//HashSet<object> objectsToFilterOut = GetManifestOfObjectsInUi();
-			//Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
-			//string getName(object obj) { return (obj as UnityEngine.Object).name; }
-			//Debug.Log("REFRESH:\nadd "+toAdd.Keys.JoinToString(", ", getName) +"\nremove: "+objectsToFilterOut.JoinToString(", ", getName));
-			//RemoveUiFor(objectsToFilterOut);
-			//AddUiForObjectsInOrder(toAdd);
-			data.Clear();
-			Load(objects);
+			HashSet<object> objectsToFilterOut = GetManifestOfObjectsInUi();
+			Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
+			string getName(object obj) { return (obj as UnityEngine.Object).name; }
+			//Debug.Log("REFRESH:\nadd " + toAdd.Keys.JoinToString(", ", getName) + "\nremove: " + objectsToFilterOut.JoinToString(", ", getName));
+			RemoveUiFor(objectsToFilterOut);
+			AddUiForObjectsInOrder(toAdd);
+
+			//data.Clear();
+			//Load(objects);
 			FullRefresh();
 		}
 
