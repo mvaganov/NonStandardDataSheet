@@ -141,19 +141,32 @@ namespace NonStandard.GameUi.DataSheet {
 			needsRefresh = true;
 		}
 		public void RefreshData() {
-			// TODO keep order of rows when refreshing
-			//Debug.Log("REFRESH");
-			List<object> objects = GetObjects();
-			HashSet<object> objectsToFilterOut = GetManifestOfObjectsInUi();
+			//string getName(object obj) { return (obj as UnityEngine.Object).name; }
+			Dictionary<object, int> objectsToFilterOut = GetManifestOfObjectsInUi();
+			List<object> objects = GetCurrentObjectsRespectingUiOrder(objectsToFilterOut);
+			//Debug.Log("REFRESH  " + objects.JoinToString(", ", getName));
 			Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
-			string getName(object obj) { return (obj as UnityEngine.Object).name; }
 			//Debug.Log("REFRESH:\nadd " + toAdd.Keys.JoinToString(", ", getName) + "\nremove: " + objectsToFilterOut.JoinToString(", ", getName));
 			RemoveUiFor(objectsToFilterOut);
 			AddUiForObjectsInOrder(toAdd);
 
+			//Debug.Log("REFRESHd " + objects.JoinToString(", ", getName));
 			//data.Clear();
 			//Load(objects);
 			FullRefresh();
+		}
+
+		public List<object> GetCurrentObjectsRespectingUiOrder(Dictionary<object, int> objectOrdering) {
+			List<object> objects = GetObjects();
+			objects.Sort((a, b) => {
+				if (!objectOrdering.TryGetValue(a, out int orderA)) { orderA = -1; }
+				if (!objectOrdering.TryGetValue(b, out int orderB)) { orderB = -1; }
+				if (orderA >= 0 && orderB >= 0) { return orderA.CompareTo(orderB); }
+				if (orderA >= 0) { return -1; }
+				if (orderB >= 0) { return 1; }
+				return 0;
+			});
+			return objects;
 		}
 
 		public List<object> GetObjects() {
@@ -168,23 +181,23 @@ namespace NonStandard.GameUi.DataSheet {
 			return objects;
 		}
 
-		public HashSet<object> GetManifestOfObjectsInUi() {
-			HashSet<object> manifest = new HashSet<object>();
+		public Dictionary<object,int> GetManifestOfObjectsInUi() {
+			Dictionary<object,int> manifest = new Dictionary<object, int>();
 			for (int i = 0; i < data.rows.Count; ++i) {
 				object o = data.rows[i].obj;
 				if (o != null) {
-					if (manifest.Contains(o)) { throw new Exception("old data contains duplicate " + o + " at index " + i); }
-					manifest.Add(o);
+					if (manifest.ContainsKey(o)) { throw new Exception("old data contains duplicate " + o + " at index " + i); }
+					manifest[o] = i;
 				}
 			}
 			return manifest;
 		}
 
-		private Dictionary<object,int> ProcessChangesNeededToUi(List<object> expectedListing, HashSet<object> filterExistingOut) {
+		private Dictionary<object,int> ProcessChangesNeededToUi(List<object> expectedListing, Dictionary<object,int> filterExistingOut) {
 			Dictionary<object, int> toAdd = new Dictionary<object, int>();
 			for (int i = 0; i < expectedListing.Count; ++i) {
 				object o = expectedListing[i];
-				bool objectIsMissingInUi = !filterExistingOut.Contains(o);
+				bool objectIsMissingInUi = !filterExistingOut.ContainsKey(o);
 				bool objectUiHasChanged = true; // TODO compare new values to currently displayed values
 				if (objectIsMissingInUi || objectUiHasChanged) {
 					if (toAdd.TryGetValue(o, out int index)) {
@@ -198,9 +211,9 @@ namespace NonStandard.GameUi.DataSheet {
 			return toAdd;
 		}
 
-		public void RemoveUiFor(HashSet<object> objectsToFilterOut) {
+		public void RemoveUiFor(Dictionary<object,int> objectsToFilterOut) {
 			for (int i = data.rows.Count - 1; i >= 0; --i) {
-				if (objectsToFilterOut.Contains(data.rows[i].obj)) {
+				if (objectsToFilterOut.ContainsKey(data.rows[i].obj)) {
 					data.rows.RemoveAt(i);
 				}
 			}
@@ -412,7 +425,7 @@ namespace NonStandard.GameUi.DataSheet {
 				rowCursor.x += w * rt.localScale.x;
 			}
 			for(int i = 0; i < unusedColumns.Count; ++i) {
-				Debug.Log("destroying "+unusedColumns[i].name);
+				//Debug.Log("destroying "+unusedColumns[i].name);
 				Destroy(unusedColumns[i].gameObject);
 			}
 			unusedColumns.Clear();
