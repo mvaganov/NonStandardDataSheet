@@ -137,5 +137,6 @@ namespace NonStandard.Data {
 		public bool Remove(KeyValuePair<string, object> item) { return dict.Remove(item); }
 		public IEnumerator<KeyValuePair<string, object>> GetEnumerator() { return dict.GetEnumerator(); }
 		IEnumerator IEnumerable.GetEnumerator() { return dict.GetEnumerator(); }
+		public void PopulateData(List<object> data) { dict.PopulateData(data); }
 	}
 }

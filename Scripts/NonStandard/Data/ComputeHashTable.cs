@@ -1,4 +1,5 @@
-﻿using System;
+﻿// code by michael vaganov, released to the public domain via the unlicense (https://unlicense.org/)
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -42,12 +43,12 @@ namespace NonStandard.Data {
 			public readonly int hash;
 			public KV(int hash, KEY k) : this(hash, k, default(VAL)) { }
 			public KV(int h, KEY k, VAL v) : base(k,v) { hash = h; }
-			public override string ToString() { return key + "(" + hash + "):" + val; }
+			public override string ToString() { return key + "(" + hash + "):" + value; }
 			public class Comparer : IComparer<KV> {
 				public int Compare(KV x, KV y) { return x.hash.CompareTo(y.hash); }
 			}
 			public static Comparer comparer = new Comparer();
-			public static implicit operator KeyValuePair<KEY, VAL>(KV k) { return new KeyValuePair<KEY, VAL>(k.key, k.val); }
+			public static implicit operator KeyValuePair<KEY, VAL>(KV k) { return new KeyValuePair<KEY, VAL>(k.key, k.value); }
 		}
 		private KV Kv(KEY key) { return new KV(Hash(key), key); }
 		private KV Kv(KEY key, VAL val) { return new KV(Hash(key), key, val); }
@@ -73,7 +74,7 @@ namespace NonStandard.Data {
 			buckets = new List<List<KV>>(bucketCount);
 			for (int i = 0; i < bucketCount; ++i) { buckets.Add(null); }
 			if (oldbuckets != null) {
-				oldbuckets.ForEach(b => { if (b != null) b.ForEach(kvp => Set(kvp.key, kvp.val)); });
+				oldbuckets.ForEach(b => { if (b != null) b.ForEach(kvp => Set(kvp.key, kvp.value)); });
 			}
 		}
 		protected int FindExactIndex(KV kvp, int index, List<KV> list) {
@@ -110,7 +111,7 @@ namespace NonStandard.Data {
 				orderedPairs.Add(kvp);
 				inserted = true;
 			}
-			SetValue_Internal(bucket[bestIndexInBucket], kvp.val);
+			SetValue_Internal(bucket[bestIndexInBucket], kvp.value);
 			return inserted;
 		}
 		protected void SetValue_Internal(KV dest, VAL value) {
@@ -126,7 +127,7 @@ namespace NonStandard.Data {
 				case ResultOfAssigningToFunction.OverwriteFunction: dest.Compute = null; break;
 				}
 			}
-			VAL old = dest.val;
+			VAL old = dest.value;
 			dest.SetInternal(value);
 			onChange?.Invoke(dest._key, old, dest._val);
 		}
@@ -156,7 +157,7 @@ namespace NonStandard.Data {
 		}
 		public VAL Get(KEY key) {
 			KV kvPair;
-			if (TryGet(key, out kvPair)) { return kvPair.val; }
+			if (TryGet(key, out kvPair)) { return kvPair.value; }
 			throw new Exception("map does not contain key '"+key+"'");
 		}
 		/// <summary>
@@ -177,9 +178,12 @@ namespace NonStandard.Data {
 			}
 			return sb.ToString();
 		}
+		public void PopulateData(List<object> data) {
+			data.AddRange(orderedPairs);
+		}
 /////////////////////////////////////////////// implementing IDictionary below ////////////////////////////////////////
 		public ICollection<KEY> Keys { get { return orderedPairs.ConvertAll(kv => kv.key); } }
-		public ICollection<VAL> Values { get { return orderedPairs.ConvertAll(kv => kv.val); } }
+		public ICollection<VAL> Values { get { return orderedPairs.ConvertAll(kv => kv.value); } }
 		public bool IsReadOnly { get { return false; } }
 		public VAL this[KEY key] { get { return Get(key); } set { Set(key, value); } }
 		public void Add(KEY key, VAL value) { Set(key, value); }
@@ -200,7 +204,7 @@ namespace NonStandard.Data {
 			return false;
 		}
 		public bool TryGetValue(KEY key, out VAL value) {
-			KV found; if (TryGet(key, out found)) { value = found.val; return true; }
+			KV found; if (TryGet(key, out found)) { value = found.value; return true; }
 			value = default(VAL); return false;
 		}
 		public void Add(KeyValuePair<KEY, VAL> item) { Set(Kv(item.Key, item.Value)); }
@@ -212,7 +216,7 @@ namespace NonStandard.Data {
 		public bool Contains(KeyValuePair<KEY, VAL> item) {
 			List<KV> bucket; int bestIndex;
 			FindEntry(Kv(item.Key), out bucket, out bestIndex);
-			return bestIndex >= 0 && bucket[bestIndex].val.Equals(item.Value);
+			return bestIndex >= 0 && bucket[bestIndex].value.Equals(item.Value);
 		}
 		public void CopyTo(KeyValuePair<KEY, VAL>[] array, int arrayIndex) {
 			int index = arrayIndex;
@@ -221,7 +225,7 @@ namespace NonStandard.Data {
 		public bool Remove(KeyValuePair<KEY, VAL> item) {
 			List<KV> bucket; int bestIndex;
 			FindEntry(Kv(item.Key), out bucket, out bestIndex);
-			if (bestIndex >= 0 && item.Value.Equals(bucket[bestIndex].val)) {
+			if (bestIndex >= 0 && item.Value.Equals(bucket[bestIndex].value)) {
 				orderedPairs.Remove(bucket[bestIndex]);
 				bucket.RemoveAt(bestIndex);
 				return true;

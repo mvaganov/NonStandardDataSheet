@@ -1,4 +1,5 @@
-﻿using NonStandard.Extension;
+﻿// code by michael vaganov, released to the public domain via the unlicense (https://unlicense.org/)
+using NonStandard.Extension;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -59,12 +60,15 @@ namespace NonStandard.Data {
 			set => SetCompute(value);
 		}
 		public KEY key { get => GetKey(); }
-		public VAL val {
+		public VAL value {
 			get => GetValue();
 			set {
 				if (IsComputed || (_val == null && value != null) || !_val.Equals(value)) {
 					SetCompute(null);
+					UnityEngine.Debug.Log("setting "+key+" to "+value);
+					VAL oldValue = _val;
 					_val = value;
+					if (onChange != null) onChange.Invoke(key, oldValue, _val);
 				}
 			}
 		}
@@ -113,7 +117,7 @@ namespace NonStandard.Data {
 				if (dependents != null) dependents.ForEach(dep => dep.needsDependencyRecalculation = true);
 				VAL oldValue = _val;
 				_val = newValue;
-				if (onChange != null) onChange.Invoke(GetKey(), oldValue, newValue);
+				if (onChange != null) onChange.Invoke(key, oldValue, newValue);
 			}
 		}
 
@@ -150,14 +154,14 @@ namespace NonStandard.Data {
 			watchingPaths.Remove(t);
 			pathNotes.Remove(t);
 		}
-		public override string ToString() { return key + ":" + val; }
+		public override string ToString() { return key + ":" + value; }
 		public object Printable(object o) {
 			if (o is string s) { return "\"" + s.Escape() + "\""; }
 			return o.StringifySmall();
 		}
 		public string ToString(bool showDependencies, bool showDependents) {
 			StringBuilder sb = new StringBuilder();
-			sb.Append(Printable(key)).Append(":").Append(Printable(val));
+			sb.Append(Printable(key)).Append(":").Append(Printable(value));
 			if (showDependencies) { showDependencies = reliesOn != null && reliesOn.Count != 0; }
 			if (showDependents) { showDependents = dependents != null && dependents.Count != 0; }
 			if (showDependencies || showDependents) {
