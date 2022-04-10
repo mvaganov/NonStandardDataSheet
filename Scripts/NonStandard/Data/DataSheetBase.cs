@@ -179,6 +179,7 @@ namespace NonStandard.Data {
 			}
 
 			public object FilterType(object value) {
+				//UnityEngine.Debug.Log("type should be [" + type + "]");
 				if (type != null) { CodeConvert.Convert(ref value, type); }
 				return value;
 			}

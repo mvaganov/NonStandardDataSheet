@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace NonStandard.Data {
+	public enum ResultOfAssigningToFunction { ThrowException, Ignore, OverwriteFunction }
 	/// <summary>
 	/// hash table that can have callbacks put on key/value pairs to notify when values change (keys are immutable)
 	/// key/value pairs can also be Set to functions, meaning that they are calculated by code, including possibly other members of this dictionary, which could also be functions. dependencies are calculated, and errors are thrown if recursion is discovered.
@@ -19,10 +20,10 @@ namespace NonStandard.Data {
 		/// <summary>
 		/// callback whenever any change is made. onChange(key, oldValue, newValue)
 		/// </summary>
-		public KeyValueChangeCallback onChange;
+		private Computable<KEY,VAL>.KeyValueChangeCallback _onChange;
 		protected List<List<KV>> buckets;
 
-		public delegate void KeyValueChangeCallback(KEY Key, VAL oldValue, VAL newValue);
+		//public delegate void KeyValueChangeCallback(KEY Key, VAL oldValue, VAL newValue);
 		public delegate int HashFunction_t(KEY Key);
 
 		public const int defaultBuckets = 8;
@@ -31,18 +32,34 @@ namespace NonStandard.Data {
 		/// used to log the order of key/value pairs and cache them in an easily traversed list
 		/// </summary>
 		protected List<KV> orderedPairs = new List<KV>();
+
+		public Computable<KEY, VAL>.KeyValueChangeCallback OnChange {
+			get => _onChange;
+			set {
+				orderedPairs.ForEach(kv => kv.onChange -= _onChange);
+				//UnityEngine.Debug.Log("setting ONCHANGE");
+				_onChange = value;
+				orderedPairs.ForEach(kv => kv.onChange += _onChange);
+			}
+		}
+
 		// TODO prototype fallback dictionary, like EcmaScript
 		//public IDictionary<KEY, VAL> _fallback = null;
-		public enum ResultOfAssigningToFunction { ThrowException, Ignore, OverwriteFunction }
 		public ResultOfAssigningToFunction onAssignmentToFunction = ResultOfAssigningToFunction.ThrowException;
-		public void FunctionAssignIgnore() { onAssignmentToFunction = ResultOfAssigningToFunction.Ignore; }
-		public void FunctionAssignException() { onAssignmentToFunction = ResultOfAssigningToFunction.ThrowException; }
-		public void FunctionAssignOverwrite() { onAssignmentToFunction = ResultOfAssigningToFunction.OverwriteFunction; }
+		//public void FunctionAssignIgnore() { onAssignmentToFunction = ResultOfAssigningToFunction.Ignore; }
+		//public void FunctionAssignException() { onAssignmentToFunction = ResultOfAssigningToFunction.ThrowException; }
+		//public void FunctionAssignOverwrite() { onAssignmentToFunction = ResultOfAssigningToFunction.OverwriteFunction; }
 		int Hash(KEY key) { return Math.Abs(hFunc != null ? hFunc(key) : key.GetHashCode()); }
 		public class KV : Computable<KEY,VAL> {
 			public readonly int hash;
-			public KV(int hash, KEY k) : this(hash, k, default(VAL)) { }
-			public KV(int h, KEY k, VAL v) : base(k,v) { hash = h; }
+			public KV(int hash, KEY k, KeyValueChangeCallback onChange) : this(hash, k, default(VAL), onChange) { }
+			public KV(int h, KEY k, VAL v, KeyValueChangeCallback onChange) : base(k,v) {
+				//UnityEngine.Debug.Log("KV " + k + "," + v);
+				hash = h;
+				if (onChange != null) {
+					this.onChange += onChange.Invoke;
+				}
+			}
 			public override string ToString() { return key + "(" + hash + "):" + value; }
 			public class Comparer : IComparer<KV> {
 				public int Compare(KV x, KV y) { return x.hash.CompareTo(y.hash); }
@@ -50,8 +67,8 @@ namespace NonStandard.Data {
 			public static Comparer comparer = new Comparer();
 			public static implicit operator KeyValuePair<KEY, VAL>(KV k) { return new KeyValuePair<KEY, VAL>(k.key, k.value); }
 		}
-		private KV Kv(KEY key) { return new KV(Hash(key), key); }
-		private KV Kv(KEY key, VAL val) { return new KV(Hash(key), key, val); }
+		private KV Kv(KEY key) { return new KV(Hash(key), key, _onChange); }
+		private KV Kv(KEY key, VAL val) { return new KV(Hash(key), key, val, _onChange); }
 		public ComputeHashTable(HashFunction_t hashFunc, int bCount = defaultBuckets) { hFunc = hashFunc; BucketCount = bCount; }
 		public ComputeHashTable() { }
 		public ComputeHashTable(int bucketCount) { BucketCount = bucketCount; }
@@ -129,7 +146,7 @@ namespace NonStandard.Data {
 			}
 			VAL old = dest.value;
 			dest.SetInternal(value);
-			onChange?.Invoke(dest._key, old, dest._val);
+			//onChange?.Invoke(dest._key, old, dest._val);
 		}
 		public bool Set(KEY key, Func<VAL> valFunc) {
 			EnsureBuckets();
@@ -164,7 +181,7 @@ namespace NonStandard.Data {
 		/// calls any change listeners to mark initialization
 		/// </summary>
 		public void NotifyStart() {
-			if (onChange != null) { onChange.Invoke(default(KEY), default(VAL), default(VAL)); }
+			if (_onChange != null) { _onChange.Invoke(default(KEY), default(VAL), default(VAL)); }
 		}
 		public string Show(bool showCalcualted) {
 			StringBuilder sb = new StringBuilder();

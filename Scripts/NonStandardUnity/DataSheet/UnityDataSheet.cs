@@ -128,6 +128,10 @@ namespace NonStandard.GameUi.DataSheet {
 					type = c.typeOfValue,
 					defaultValue = c.defaultValue
 				};
+				if (columnSetting.type == null && c.defaultValue != null) {
+					//Debug.Log("setting default type to "+ c.defaultValue.GetType());
+					columnSetting.type = c.defaultValue.GetType();
+				}
 				columnSetting.SetFieldToken(c.valueScript, tokenizer);
 				data.SetColumn(index, columnSetting);
 				if (c.widthOfColumn > 0) {

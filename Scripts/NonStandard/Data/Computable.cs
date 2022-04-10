@@ -65,10 +65,13 @@ namespace NonStandard.Data {
 			set {
 				if (IsComputed || (_val == null && value != null) || !_val.Equals(value)) {
 					SetCompute(null);
-					UnityEngine.Debug.Log("setting "+key+" to "+value);
+					//UnityEngine.Debug.Log("setting "+key+" to "+value);
 					VAL oldValue = _val;
 					_val = value;
-					if (onChange != null) onChange.Invoke(key, oldValue, _val);
+					if (onChange != null) {
+						//UnityEngine.Debug.Log("invoking change:\n"+ onChange.GetInvocationList().JoinToString("\n"));
+						onChange.Invoke(key, oldValue, _val);
+					}
 				}
 			}
 		}

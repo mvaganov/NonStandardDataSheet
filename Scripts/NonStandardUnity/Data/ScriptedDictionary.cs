@@ -22,6 +22,9 @@ namespace NonStandard.Data {
 
 		bool validating = false;
 		void OnValidate() {
+			RefreshParseResults();
+		}
+		public void RefreshParseResults() {
 			Tokenizer tok = new Tokenizer();
 			if (Application.isPlaying) {
 				CodeConvert.TryFill(values, ref dict, null, tok);
@@ -32,7 +35,7 @@ namespace NonStandard.Data {
 				parseResults = tok.errors.JoinToString("\n");
 			} else {
 				//parseResults = dict.Show(true);
-				string newResults = dict.Stringify(pretty:true,showType:true,showNulls:true);
+				string newResults = dict.Stringify(pretty: true, showType: true, showNulls: true);
 				if (parseResults != newResults) { parseResults = newResults; }
 			}
 		}
@@ -42,7 +45,7 @@ namespace NonStandard.Data {
 			textElement.text = outText;
 		}
 #endif
-		public void UpdateValueStringWithDictionary() {
+		public void UpdateSourceValueStringWithDictionary() {
 #if UNITY_EDITOR
 			if (!validating) {
 				validating = true;
@@ -50,6 +53,7 @@ namespace NonStandard.Data {
 				// TODO make this work better... currently giving strings without quotes
 				Proc.Delay(0, () => { values = dict.Show(true); });
 #if UNITY_EDITOR
+				validating = false;
 			}
 #endif
 		}
@@ -71,17 +75,23 @@ namespace NonStandard.Data {
 			}
 		}
 		void Start() {
+			dict.OnChange += (k, a, b) => {
+				string s = dict.Stringify(true);
+				//Debug.Log("refreshing data! "+k+" from "+a+" to "+b+"\n"+s);
 #if UNITY_EDITOR
-			dict.onChange += (k, a, b) => { UpdateValueStringWithDictionary(); };
+				parseResults = s;
 #endif
-			dict.onChange += (k, a, b) => {
 				if (dictionaryTostringChangeListener.GetPersistentEventCount() > 0) {
-					string s = dict.Stringify(true);
-					//Debug.Log(s);
 					dictionaryTostringChangeListener.Invoke(s);
 				}
 			};
-			dict.FunctionAssignIgnore();
+			dict.onAssignmentToFunction = ResultOfAssigningToFunction.Ignore;
+#if UNITY_EDITOR
+			dict.OnChange += (k, a, b) => {
+				//Debug.Log("updating source! " + k + " from " + a + " to " + b);
+				UpdateSourceValueStringWithDictionary();
+			};
+#endif
 #if TEST
 			string[] mainStats = new string[] { "str", "con", "dex", "int", "wis", "cha" };
 			int[] scores = { 8, 8, 18, 12, 9, 14 };
