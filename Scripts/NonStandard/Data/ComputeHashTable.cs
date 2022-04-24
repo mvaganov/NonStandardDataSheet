@@ -33,6 +33,8 @@ namespace NonStandard.Data {
 		/// </summary>
 		protected List<KV> orderedPairs = new List<KV>();
 
+		public List<KV> OrderedPairs => orderedPairs;
+
 		public Computable<KEY, VAL>.KeyValueChangeCallback OnChange {
 			get => _onChange;
 			set {

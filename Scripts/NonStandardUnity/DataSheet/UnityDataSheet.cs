@@ -8,6 +8,7 @@ using NonStandard.Utility.UnityEditor;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
 /// <summary>
@@ -80,10 +81,13 @@ namespace NonStandard.GameUi.DataSheet {
 		[TextArea(1, 10)]
 		public string columnSetup;
 		public UnityEvent_List_object dataPopulator = new UnityEvent_List_object();
+		public UnityEvent_RowsL onNotifyReorder = new UnityEvent_RowsL();
 		Vector2 contentAreaSize;
 		bool needsRefresh;
 		bool debugNoisy;
 		public int Count => data.rows.Count;
+
+		[Serializable] public class UnityEvent_RowsL : UnityEvent<List<RowData>> { }
 
 		public int GetRowIndex(GameObject rowObject) {
 			for(int i = 0; i < contentRectangle.childCount; ++i) {
@@ -103,11 +107,12 @@ namespace NonStandard.GameUi.DataSheet {
 			InitColumnSettings(columnSetup);
 		}
 		void InitColumnSettings(string columnSetup) {
-			//Show.Log(columnSetup);
+			//Debug.Log(columnSetup);
 			Tokenizer tokenizer = new Tokenizer();
 			CodeConvert.TryParse(columnSetup, out UnityColumnData[] columns, null, tokenizer);
 			if (tokenizer.HasError()) {
-				Show.Error("error parsing column structure: " + tokenizer.GetErrorString());
+				popup.Set("err", null, tokenizer.GetErrorString());
+				Debug.LogError("error parsing column structure: " + tokenizer.GetErrorString());
 				return;
 			}
 			int index = 0;
@@ -137,6 +142,7 @@ namespace NonStandard.GameUi.DataSheet {
 				if (c.widthOfColumn > 0) {
 					data.columnSettings[index].data.widthOfColumn = c.widthOfColumn;
 				}
+				//Debug.Log("column " + index + " " + c.label);
 				++index;
 			}
 			RefreshHeaders();
@@ -486,6 +492,7 @@ namespace NonStandard.GameUi.DataSheet {
 			data.MoveRow(oldIndex, newIndex);
 			contentRectangle.GetChild(oldIndex).SetSiblingIndex(newIndex);
 			RefreshRowUi();
+			onNotifyReorder?.Invoke(data.rows);
 		}
 		public void RemoveRow(int index) {
 			Transform child = contentRectangle.transform.GetChild(index);
@@ -501,7 +508,23 @@ namespace NonStandard.GameUi.DataSheet {
 			data.RemoveColumn(index);
 			RefreshUi();
 		}
-
+		public static void NotifyReorder<T>(List<RowData> reordered, List<T> source) where T : class {
+			Dictionary<T, int> dataIndex = new Dictionary<T, int>();
+			for (int i = 0; i < reordered.Count; i++) {
+				T element = reordered[i].obj as T;
+				if (element == null) {
+					Debug.LogError("expected NotifyReorder to give RowData of " + nameof(T) + " objects");
+					return;
+				}
+				dataIndex[element] = i;
+			}
+			source.Sort((a, b) => {
+				if (dataIndex.TryGetValue(a, out int indexA) && dataIndex.TryGetValue(b, out int indexB)) {
+					return indexA.CompareTo(indexB);
+				}
+				return 0;
+			});
+		}
 		public Dictionary<object, DataSheetRow> RefreshRowUi_HardReset
 															() {
 			for (int i = 0; i < contentRectangle.childCount; ++i) {

@@ -12,6 +12,7 @@ public class MinimizableWindow : MonoBehaviour
 	public UnityEvent_Vector2 onMinimize;
 	public UnityEvent_Vector2 onMaximize;
 	public UnityEvent_Vector2 onRestore;
+
 	public void Start() {
 		RectTransform rect = GetComponent<RectTransform>();
 		size = rect.sizeDelta;

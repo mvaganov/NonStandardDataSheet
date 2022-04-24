@@ -1,6 +1,8 @@
-﻿//#define TEST
+﻿// code by michael vaganov, released to the public domain via the unlicense (https://unlicense.org/)
+//#define TEST
 using NonStandard.Data.Parse;
 using NonStandard.Extension;
+using NonStandard.GameUi.DataSheet;
 using NonStandard.Process;
 using System.Collections;
 using System.Collections.Generic;
@@ -148,5 +150,6 @@ namespace NonStandard.Data {
 		public IEnumerator<KeyValuePair<string, object>> GetEnumerator() { return dict.GetEnumerator(); }
 		IEnumerator IEnumerable.GetEnumerator() { return dict.GetEnumerator(); }
 		public void PopulateData(List<object> data) { dict.PopulateData(data); }
+		public void NotifyReorder(List<RowData> reordered) { UnityDataSheet.NotifyReorder(reordered, dict.OrderedPairs); }
 	}
 }

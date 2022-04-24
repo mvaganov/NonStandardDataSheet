@@ -1,4 +1,5 @@
-﻿using NonStandard.Ui;
+﻿// code by michael vaganov, released to the public domain via the unlicense (https://unlicense.org/)
+using NonStandard.Ui;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
