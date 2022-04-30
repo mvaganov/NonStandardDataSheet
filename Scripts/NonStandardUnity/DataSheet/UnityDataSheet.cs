@@ -50,6 +50,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public Token script;
 		public object scope;
 		public string debugMetaData;
+		public Action<string> onError;
 		public void Set(object scope, Token script) { this.scope = scope; this.script = script; }
 		/// <summary>
 		/// how to execute an onClick action
@@ -58,12 +59,17 @@ namespace NonStandard.GameUi.DataSheet {
 		public void OnClick() {
 			//Show.Log(debugMetaData);
 			//Show.Log("onClick " + scope + "." + script.Stringify());
-			TokenErrorLog tok = new TokenErrorLog();
+			TokenErrorLog err = new TokenErrorLog();
 			if (script.meta != null) {
-				object r = script.Resolve(tok, scope);
+				object r = script.Resolve(err, scope);
 			}
-			if (tok.HasError()) {
-				Show.Warning(tok.GetErrorString());
+			if (err.HasError()) {
+				string errString = err.GetErrorString();
+				Show.Warning(errString);
+				onError?.Invoke(errString);
+				if (!string.IsNullOrEmpty(debugMetaData)) {
+					err.AddError(debugMetaData);
+				}
 			}
 		}
 		public void OnClick(BaseEventData bed) { OnClick(); }
@@ -111,7 +117,7 @@ namespace NonStandard.GameUi.DataSheet {
 			Tokenizer tokenizer = new Tokenizer();
 			CodeConvert.TryParse(columnSetup, out UnityColumnData[] columns, null, tokenizer);
 			if (tokenizer.HasError()) {
-				popup.Set("err", null, tokenizer.GetErrorString());
+				ShowError(tokenizer.GetErrorString());
 				Debug.LogError("error parsing column structure: " + tokenizer.GetErrorString());
 				return;
 			}
@@ -146,6 +152,10 @@ namespace NonStandard.GameUi.DataSheet {
 				++index;
 			}
 			RefreshHeaders();
+		}
+		public void ShowError(string error) => ShowError(error, null);
+		public void ShowError(string error, GameObject errorObject) {
+			popup.Set("err", errorObject, error);
 		}
 		public void QueueRefresh() {
 			needsRefresh = true;
@@ -262,7 +272,7 @@ namespace NonStandard.GameUi.DataSheet {
 				string headerObjName = colS.data.headerUi.ResolveString(errLog, this);
 				// check if the header we need is in the old header list
 				object headerTextResult = colS.data.label.Resolve(errLog, data);
-				if (errLog.HasError()) { popup.Set("err", null, errLog.GetErrorString()); return; }
+				if (errLog.HasError()) { ShowError(errLog.GetErrorString()); return; }
 				string headerTextString = headerTextResult?.ToString() ?? null;
 				for (int h = 0; h < unusedHeaders.Count; ++h) {
 					GameObject hdr = unusedHeaders[h];
@@ -342,7 +352,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public void Load(List<object> source) {
 			//list = source;
 			data.InitData(source, errLog);
-			if (errLog.HasError()) { popup.Set("err", null, errLog.GetErrorString()); return; }
+			if (errLog.HasError()) { ShowError(errLog.GetErrorString()); return; }
 			RefreshUi();
 			popup.Hide();
 		}
@@ -407,6 +417,7 @@ namespace NonStandard.GameUi.DataSheet {
 					if (fieldUi != null) { Destroy(clickable); }
 					clickable = fieldUi.AddComponent<ClickableScriptedCell>();
 					clickable.Set(rowData.obj, colS.data.onClick);
+					clickable.onError += ShowError;
 					clickable.debugMetaData = colS.data.onClick.StringifySmall();
 					if (!UiClick.AddOnButtonClickIfNotAlready(fieldUi, clickable, clickable.OnClick)) {
 						UiClick.AddOnPanelClickIfNotAlready(fieldUi, clickable, clickable.OnClick);

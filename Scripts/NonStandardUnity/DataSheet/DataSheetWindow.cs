@@ -18,6 +18,18 @@ namespace NonStandard.GameUi.DataSheet {
 		public TMP_Text titleTextObj;
 		public UnityDataSheet dataSheetObj;
 
+		public List<RowData> RowData => dataSheetObj.data.rows;
+		//public Transform RowUi(int i) => dataSheetObj.contentRectangle.GetChild(i);
+		public DataSheetRow RowUi(object obj) {
+			for(int i = 0; i < dataSheetObj.contentRectangle.childCount; ++i) {
+				DataSheetRow drow = dataSheetObj.contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+				if (drow != null && drow.rowData.obj == obj) {
+					return drow;
+				}
+			}
+			return null;
+		}
+
 		#if UNITY_EDITOR
 		private void OnValidate() {
 			if (titleTextObj != null) titleTextObj.text = title;
