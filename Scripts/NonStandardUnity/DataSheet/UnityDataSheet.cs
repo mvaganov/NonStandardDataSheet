@@ -15,6 +15,9 @@ using UnityEngine.EventSystems;
 /// model/view controllers are tricky because cache invalidation is hard.
 /// </summary>
 namespace NonStandard.GameUi.DataSheet {
+	public interface IHasUiElement {
+		GameObject UiElement { get; set; }
+	}
 	/// <summary>
 	/// the actual data structure that is used 
 	/// </summary>
@@ -55,7 +58,6 @@ namespace NonStandard.GameUi.DataSheet {
 		/// <summary>
 		/// how to execute an onClick action
 		/// </summary>
-		/// <param name="scope"></param>
 		public void OnClick() {
 			//Show.Log(debugMetaData);
 			//Show.Log("onClick " + scope + "." + script.Stringify());
@@ -365,6 +367,9 @@ namespace NonStandard.GameUi.DataSheet {
 			if (rObj.rowData == null) { throw new Exception("something bad. where is the object that this row is for?"); }
 			rowUi.SetActive(true);
 			UpdateRowData(rObj, rowIndex, rowData, yPosition);
+			if (rowData.obj is IHasUiElement hasUi) {
+				hasUi.UiElement = rObj.gameObject;
+			}
 			return rObj;
 		}
 		public GameObject UpdateRowData(DataSheetRow rObj, int rowIndex, RowData rowData, float yPosition = float.NaN, bool alsoCalculateColumns = true) {
