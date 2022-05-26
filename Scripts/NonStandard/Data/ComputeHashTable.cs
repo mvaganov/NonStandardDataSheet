@@ -62,6 +62,7 @@ namespace NonStandard.Data {
 					this.onChange += onChange.Invoke;
 				}
 			}
+			public KV CloneWithoutCallback() => new KV(hash, key, value, null);
 			public override string ToString() { return key + "(" + hash + "):" + value; }
 			public class Comparer : IComparer<KV> {
 				public int Compare(KV x, KV y) { return x.hash.CompareTo(y.hash); }

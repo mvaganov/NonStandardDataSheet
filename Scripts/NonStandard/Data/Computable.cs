@@ -10,7 +10,7 @@ namespace NonStandard.Data {
 	/// </summary>
 	/// <typeparam name="KEY"></typeparam>
 	/// <typeparam name="VAL"></typeparam>
-	public class Computable<KEY,VAL> {
+	public class Computable<KEY,VAL> : IComparable<Computable<KEY, VAL>> where KEY : IComparable<KEY> {
 		/// <summary>
 		/// name of this value
 		/// </summary>
@@ -182,6 +182,15 @@ namespace NonStandard.Data {
 				sb.Append(" */");
 			}
 			return sb.ToString();
+		}
+
+		public int CompareTo(Computable<KEY, VAL> other) {
+			int i = key.CompareTo(other.key);
+			if (i != 0) return i;
+			if (value is IComparable<VAL> comparable) {
+				return comparable.CompareTo(other.value);
+			}
+			return i;
 		}
 	}
 }
