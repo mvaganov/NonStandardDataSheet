@@ -13,8 +13,7 @@ namespace NonStandard.Data {
 
 	[System.Serializable, StringifyHideType]
 	public class HashTable_stringobject : ComputeHashTable<string, object> { }
-	public class ScriptedDictionary : MonoBehaviour, IDictionary<string, object>
-	{
+	public class ScriptedDictionary : MonoBehaviour, IDictionary<string, object> {
 		[SerializeField, HideInInspector] protected HashTable_stringobject dict = new HashTable_stringobject();
 		[TextArea(3, 10)]
 		public string values;
@@ -59,7 +58,8 @@ namespace NonStandard.Data {
 			}
 #endif
 		}
-		public StringEvent dictionaryTostringChangeListener;
+		public StringEvent dictionaryTostringChangeListener = new StringEvent();
+		public KvpChangeEvent valueChangeListener = new KvpChangeEvent();
 		public ScriptedDictionary GetVars(string name) {
 			ScriptedDictionaryManager m = Global.GetComponent<ScriptedDictionaryManager>();
 			if (m == null) return null;
@@ -67,6 +67,7 @@ namespace NonStandard.Data {
 		}
 
 		[System.Serializable] public class StringEvent : UnityEvent<string> { }
+		[System.Serializable] public class KvpChangeEvent : UnityEvent<string, object, object> { }
 
 		void Awake() {
 			Global.GetComponent<ScriptedDictionaryManager>().Register(this);
@@ -76,7 +77,13 @@ namespace NonStandard.Data {
 				if (tok.HasError()) { Show.Warning(tok.GetErrorString()); }
 			}
 		}
-		void Start() {
+		private void OnEnable() {
+			dict.OnChange += valueChangeListener.Invoke;
+		}
+		private void OnDisable() {
+			dict.OnChange -= valueChangeListener.Invoke;
+		}
+		private void Start() {
 			dict.OnChange += (k, a, b) => {
 				string s = dict.Stringify(true);
 				//Debug.Log("refreshing data! "+k+" from "+a+" to "+b+"\n"+s);
