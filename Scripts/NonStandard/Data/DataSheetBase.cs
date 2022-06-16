@@ -340,13 +340,17 @@ namespace NonStandard.Data {
 			}
 		}
 		public void RefreshAll(ITokenErrLog errLog = null) {
+			//StringBuilder sb = new StringBuilder();
 			for(int r = 0; r < rows.Count; ++r) {
 				for (int c = 0; c < columnSettings.Count; ++c) {
 					object value = columnSettings[c].GetValue(errLog, rows[r].obj);
 					if (errLog != null && errLog.HasError()) { return; }
 					rows[r].columns[c] = value;
+					//if (sb != null) { if (value != null) { sb.Append(value.ToString()); } sb.Append(", "); }
 				}
+				// if (sb != null) { sb.Append("\n"); }
 			}
+			//if (sb != null) { UnityEngine.Debug.Log(sb.ToString()); }
 		}
 		public object Get(int row, int col) { return rows[row].columns[col]; }
 		public void Set(int row, int col, object value) {

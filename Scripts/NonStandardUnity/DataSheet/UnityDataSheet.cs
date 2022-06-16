@@ -93,6 +93,7 @@ namespace NonStandard.GameUi.DataSheet {
 		Vector2 contentAreaSize;
 		bool needsRefresh;
 		bool debugNoisy;
+		public bool alwaysRebuildUi = false;
 		public int Count => data.rows.Count;
 
 		[Serializable] public class UnityEvent_RowsL : UnityEvent<List<RowData>> { }
@@ -163,9 +164,18 @@ namespace NonStandard.GameUi.DataSheet {
 			needsRefresh = true;
 		}
 		public void RefreshData() {
+			List<object> objects;
+			if (alwaysRebuildUi) {
+				data.Clear();
+				objects = GetObjects(); 
+				Load(objects);
+				Debug.Log("hard refresh");
+				FullRefresh();
+				return;
+			}
 			//string getName(object obj) { return (obj as UnityEngine.Object).name; }
 			Dictionary<object, int> objectsToFilterOut = GetManifestOfObjectsInUi();
-			List<object> objects = GetCurrentObjectsRespectingUiOrder(objectsToFilterOut);
+			objects = GetCurrentObjectsRespectingUiOrder(objectsToFilterOut);
 			//Debug.Log("REFRESH  " + objects.JoinToString(", ", getName));
 			Dictionary<object, int> toAdd = ProcessChangesNeededToUi(objects, objectsToFilterOut);
 			//Debug.Log("REFRESH:\nadd " + toAdd.Keys.JoinToString(", ", getName) + "\nremove: " + objectsToFilterOut.JoinToString(", ", getName));
@@ -180,6 +190,7 @@ namespace NonStandard.GameUi.DataSheet {
 
 		public List<object> GetCurrentObjectsRespectingUiOrder(Dictionary<object, int> objectOrdering) {
 			List<object> objects = GetObjects();
+			//Debug.Log("pre sort:" + objects.JoinToString());
 			objects.Sort((a, b) => {
 				if (!objectOrdering.TryGetValue(a, out int orderA)) { orderA = -1; }
 				if (!objectOrdering.TryGetValue(b, out int orderB)) { orderB = -1; }
@@ -188,6 +199,7 @@ namespace NonStandard.GameUi.DataSheet {
 				if (orderB >= 0) { return 1; }
 				return 0;
 			});
+			//Debug.Log("postsort:" + objects.JoinToString());
 			return objects;
 		}
 
@@ -573,8 +585,8 @@ namespace NonStandard.GameUi.DataSheet {
 		/// <summary>
 		/// uses a dictionary to quickly calculate UI elements for rows, and position them in the view
 		/// </summary>
-		public Dictionary<object, DataSheetRow> RefreshRowUi//_TryToBeSmart
-															() {
+		/// TODO refactor this method... something fishy is going on in here maybe.
+		public Dictionary<object, DataSheetRow> RefreshRowUi() {
 			Dictionary<object, DataSheetRow> oldMap = MapListElementsToRowUi();
 			List<DataSheetRow> unused = new List<DataSheetRow>();
 			// check to see if any of the UI rows are not being used by the datasheet by identifying which ones are used for sure
