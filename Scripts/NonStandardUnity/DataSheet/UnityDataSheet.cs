@@ -587,41 +587,17 @@ namespace NonStandard.GameUi.DataSheet {
 		/// </summary>
 		/// TODO refactor this method... something fishy is going on in here maybe.
 		public Dictionary<object, DataSheetRow> RefreshRowUi() {
-			Dictionary<object, DataSheetRow> oldMap = MapListElementsToRowUi();
-			List<DataSheetRow> unused = new List<DataSheetRow>();
+			Dictionary<object, DataSheetRow> oldMap = MapOfCurrentUi();
 			// check to see if any of the UI rows are not being used by the datasheet by identifying which ones are used for sure
-			Dictionary<object, DataSheetRow> usedMapping = new Dictionary<object, DataSheetRow>();
-			//List<object> missing = new List<object>();
-			for (int i = 0; i < data.rows.Count; ++i) {
-				RowData rd = data.rows[i];
-				if (oldMap.TryGetValue(rd.obj, out DataSheetRow foundRow)) {
-					usedMapping[rd.obj] = foundRow;
-				}
-				//else { missing.Add(rd.obj); }
-			}
-			for (int i = 0; i < contentRectangle.childCount; ++i) {
-				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
-				if (!usedMapping.TryGetValue(rObj.obj, out DataSheetRow foundRow)) {
-					unused.Add(rObj);
-				}
-			}
+			Dictionary<object, DataSheetRow> usedMapping = MapOfUiNeededForCurrentData(oldMap);
+			List<DataSheetRow> unused = ListCurrentUiElementsThatAreNotNeeded(usedMapping);
 			Vector2 cursor = Vector2.zero;
 			// go through all of the row elements and put the row UI elements in the correct spot
 			for(int i = 0; i < data.rows.Count; ++i) {
 				RowData rd = data.rows[i];
 				// if this row data is missing a UI element
 				if (!usedMapping.TryGetValue(rd.obj, out DataSheetRow rObj)) {
-					// use one of the unused elements if there is one
-					if (unused.Count > 0) {
-						rObj = unused[unused.Count - 1];
-						unused.RemoveAt(unused.Count - 1);
-						UpdateRowData(rObj, i, rd, -cursor.y);
-					} else {
-						// create he UI element, and put it into the content rectangle
-						rObj = CreateRow(i, data.rows[i], -cursor.y);
-					}
-					rObj.transform.SetParent(contentRectangle);
-					usedMapping[rObj.obj] = rObj;
+					rObj = GiveDataModelSomeUi(unused, i, rd, -cursor.y, usedMapping);
 				} else {
 					// Debug.Log("reusing UI row for "+rd.obj);
 					data.RefreshRowData(rd, data.columnSettings);
@@ -661,21 +637,60 @@ namespace NonStandard.GameUi.DataSheet {
 			contentRectangle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -cursor.y);
 			return usedMapping;
 		}
-		public Dictionary<object, DataSheetRow> MapListElementsToRowUi() {
-			Dictionary<object, DataSheetRow> oldMap = new Dictionary<object, DataSheetRow>();
+
+		private Dictionary<object, DataSheetRow> MapOfCurrentUi() {
+			Dictionary<object, DataSheetRow> currentUi = new Dictionary<object, DataSheetRow>();
 			for (int i = 0; i < contentRectangle.childCount; ++i) {
 				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
 				if (rObj == null) { continue; }
 				if (rObj.obj == null) {
 					throw new Exception("found a row (" + rObj.transform.HierarchyPath() + ") without source object at index " + i);
 				}
-				if (oldMap.TryGetValue(rObj.obj, out DataSheetRow uiElement)) {
+				if (currentUi.TryGetValue(rObj.obj, out DataSheetRow uiElement)) {
 					throw new Exception("multiple row elements for row " + i + ": " + rObj.obj);
 				}
-				oldMap[rObj.obj] = rObj;
+				currentUi[rObj.obj] = rObj;
 			}
-			return oldMap;
+			return currentUi;
 		}
+		private Dictionary<object, DataSheetRow> MapOfUiNeededForCurrentData(Dictionary<object, DataSheetRow> currentUiData) {
+			Dictionary<object, DataSheetRow> usedMapping = new Dictionary<object, DataSheetRow>();
+			//List<object> missing = new List<object>();
+			for (int i = 0; i < data.rows.Count; ++i) {
+				RowData rd = data.rows[i];
+				if (currentUiData.TryGetValue(rd.obj, out DataSheetRow foundRow)) {
+					usedMapping[rd.obj] = foundRow;
+				}
+				//else { missing.Add(rd.obj); }
+			}
+			return usedMapping;
+		}
+		private List<DataSheetRow> ListCurrentUiElementsThatAreNotNeeded(Dictionary<object, DataSheetRow> currentUiData){
+			List<DataSheetRow> unused = new List<DataSheetRow>();
+			for (int i = 0; i < contentRectangle.childCount; ++i) {
+				DataSheetRow currentUi = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+				if (!currentUiData.TryGetValue(currentUi.obj, out DataSheetRow foundRow)) {
+					unused.Add(currentUi);
+				}
+			}
+			return unused;
+		}
+		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int i, RowData rd, float yPosition, Dictionary<object, DataSheetRow> usedMapping) {
+			DataSheetRow rObj;
+			// use one of the unused elements if there is one
+			if (unused.Count > 0) {
+				rObj = unused[unused.Count - 1];
+				unused.RemoveAt(unused.Count - 1);
+				UpdateRowData(rObj, i, rd, yPosition);
+			} else {
+				// create he UI element, and put it into the content rectangle
+				rObj = CreateRow(i, data.rows[i], yPosition);
+			}
+			rObj.transform.SetParent(contentRectangle);
+			usedMapping[rObj.obj] = rObj;
+			return rObj;
+		}
+
 		public void SetSortState(int column, SortState sortState) {
 			RefreshRowAndColumnUi();
 			data.SetSortState(column, sortState);
