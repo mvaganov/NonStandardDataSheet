@@ -594,44 +594,12 @@ namespace NonStandard.GameUi.DataSheet {
 			Vector2 cursor = Vector2.zero;
 			// go through all of the row elements and put the row UI elements in the correct spot
 			for(int i = 0; i < data.rows.Count; ++i) {
-				RowData rd = data.rows[i];
-				// if this row data is missing a UI element
-				if (!usedMapping.TryGetValue(rd.obj, out DataSheetRow rObj)) {
-					rObj = GiveDataModelSomeUi(unused, i, rd, -cursor.y, usedMapping);
-				} else {
-					// Debug.Log("reusing UI row for "+rd.obj);
-					data.RefreshRowData(rd, data.columnSettings);
-					UpdateRowData(rObj, i, rd, -cursor.y);
-				}
-				rObj.transform.SetSiblingIndex(i);
-				RectTransform rect = rObj.GetComponent<RectTransform>();
-				//rect.anchoredPosition = cursor;
-				//rect.localPosition = cursor;
-				rObj.LocalPosition = cursor;
-				cursor.y -= rect.rect.height;
+				DataSheetRow uiElement = PutDataIntoUiElement(data.rows[i], i, cursor, usedMapping, unused);
+				RectTransform rectOfUiElement = uiElement.GetComponent<RectTransform>();
+				cursor.y -= rectOfUiElement.rect.height;
 			}
 			if (contentRectangle.childCount > data.rows.Count || unused.Count > 0) {
-				// remove them in reverse order, should be slightly faster
-				for(int i = contentRectangle.childCount-1; i >= data.rows.Count; --i) {
-					DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
-					oldMap.Remove(rObj.obj);
-					if (!unused.Contains(rObj)) {
-						unused.Add(rObj);
-					}
-				}
-				if (debugNoisy) {
-					Show.Log("deleting extra elements: " + unused.JoinToString(", ", go => {
-						DataSheetRow ro = go.GetComponent<DataSheetRow>();
-						if (ro == null) return "<null>";
-						if (ro.obj == null) return "<null obj>";
-						return ro.obj.ToString();
-					}));
-				}
-				for(int i = unused.Count-1; i >= 0; --i) {
-					unused[i].transform.SetParent(null);
-					Destroy(unused[i].gameObject);
-				}
-				unused.Clear();
+				ClearUnusedUiElements(oldMap, unused);
 			}
 			contentAreaSize.y = -cursor.y;
 			contentRectangle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -cursor.y);
@@ -665,7 +633,8 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			return usedMapping;
 		}
-		private List<DataSheetRow> ListCurrentUiElementsThatAreNotNeeded(Dictionary<object, DataSheetRow> currentUiData){
+		private List<DataSheetRow> ListCurrentUiElementsThatAreNotNeeded(
+		Dictionary<object, DataSheetRow> currentUiData) {
 			List<DataSheetRow> unused = new List<DataSheetRow>();
 			for (int i = 0; i < contentRectangle.childCount; ++i) {
 				DataSheetRow currentUi = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
@@ -675,7 +644,24 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			return unused;
 		}
-		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int i, RowData rd, float yPosition, Dictionary<object, DataSheetRow> usedMapping) {
+
+		private DataSheetRow PutDataIntoUiElement(RowData rd, int i, Vector2 cursor, 
+		Dictionary<object, DataSheetRow> currentUiData, List<DataSheetRow> unused) {
+			// if this row data is missing a UI element
+			if (currentUiData.TryGetValue(rd.obj, out DataSheetRow rObj)) {
+				// Debug.Log("reusing UI row for "+rd.obj);
+				data.RefreshRowData(rd, data.columnSettings);
+				UpdateRowData(rObj, i, rd, -cursor.y);
+			} else {
+				rObj = GiveDataModelSomeUi(unused, i, rd, -cursor.y, currentUiData);
+			}
+			rObj.transform.SetSiblingIndex(i);
+			rObj.LocalPosition = cursor;
+			return rObj;
+		}
+
+		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int i, RowData rd, float yPosition,
+		Dictionary<object, DataSheetRow> usedMapping) {
 			DataSheetRow rObj;
 			// use one of the unused elements if there is one
 			if (unused.Count > 0) {
@@ -689,6 +675,27 @@ namespace NonStandard.GameUi.DataSheet {
 			rObj.transform.SetParent(contentRectangle);
 			usedMapping[rObj.obj] = rObj;
 			return rObj;
+		}
+		private void ClearUnusedUiElements(Dictionary<object, DataSheetRow> oldMap, List<DataSheetRow> unused) {
+			// remove unused old UI elements in reverse order (should be slightly faster than in order)
+			for (int i = contentRectangle.childCount - 1; i >= data.rows.Count; --i) {
+				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
+				oldMap.Remove(rObj.obj);
+				if (!unused.Contains(rObj)) { unused.Add(rObj); }
+			}
+			if (debugNoisy) {
+				Show.Log("deleting extra elements: " + unused.JoinToString(", ", go => {
+					DataSheetRow ro = go.GetComponent<DataSheetRow>();
+					if (ro == null) return "<null>";
+					if (ro.obj == null) return "<null obj>";
+					return ro.obj.ToString();
+				}));
+			}
+			for (int i = unused.Count - 1; i >= 0; --i) {
+				unused[i].transform.SetParent(null);
+				Destroy(unused[i].gameObject);
+			}
+			unused.Clear();
 		}
 
 		public void SetSortState(int column, SortState sortState) {
