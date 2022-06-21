@@ -1,11 +1,12 @@
 ﻿using NonStandard.Data;
 using NonStandard.Extension;
 using UnityEngine;
+
 namespace NonStandard.GameUi.DataSheet {
 	public class DataSheetRow : MonoBehaviour {
 		public RowData rowData;
 		private Vector3 targetLocalPosition;
-		public int Index => transform.GetSiblingIndex();
+		public int Index { get => transform.GetSiblingIndex(); set { transform.SetSiblingIndex(value); } }
 		public object obj => rowData.obj;
 
 		public Vector3 Position {

@@ -384,61 +384,53 @@ namespace NonStandard.GameUi.DataSheet {
 			}
 			return rObj;
 		}
-		public GameObject UpdateRowData(DataSheetRow rObj, int rowIndex, RowData rowData, float yPosition = float.NaN, bool alsoCalculateColumns = true) {
+		public GameObject UpdateRowData(DataSheetRow rObj, int rowIndex, RowData rowData, float yPos = float.NaN) {
 			object[] columns = rowData.columns;
 			Vector2 rowCursor = Vector2.zero;
 			RectTransform rect;
-			// remove all columns from the row (probably temporarily)
-			List<GameObject> unusedColumns = new List<GameObject>();
-			for(int i = 0; i < rObj.transform.childCount; ++i) {
-				GameObject fieldUi = rObj.transform.GetChild(i).gameObject;
-				if (fieldUi == null) { throw new Exception("a null child in the row? wat"); }
-				unusedColumns.Add(fieldUi);
-			}
-			while(rObj.transform.childCount > 0) {
-				rObj.transform.GetChild(rObj.transform.childCount-1).SetParent(null, false);
-			}
 			TokenErrorLog errLog = new TokenErrorLog();
+			List<GameObject> unusedColumns = DisconnectColumnUiElements(rObj);
 			for (int c = 0; c < data.columnSettings.Count; ++c) {
 				DataSheetUnityColumnData.ColumnSetting colS = data.columnSettings[c];
-				GameObject fieldUi = null;
-				string columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
-				if (columnUiName == null) {
-					string errorMessage = "could not resolve column UI name from " + colS.data.columnUi+"\n"+errLog.GetErrorString();
-					Show.Log(errorMessage);
-					columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
-					throw new Exception(errorMessage);
-				}
-				// check if there's a version of it from earlier
-				for (int i = 0; i < unusedColumns.Count; ++i) {
-					if (unusedColumns[i].name.StartsWith(columnUiName)) {
-						fieldUi = unusedColumns[i];
-						unusedColumns.RemoveAt(i);
-						break;
-					}
-				}
-				// otherwise create it
-				if (fieldUi == null) {
-					GameObject prefab = uiPrototypes.GetElement(columnUiName);
-					if (prefab == null) {
-						columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
-						throw new Exception("no such prefab \""+columnUiName+"\" in data sheet initialization script. valid values: ["+
-							uiPrototypes.transform.JoinToString()+"]\n---\n"+ colS.data.columnUi+"\n---\n"+columnSetup);
-					}
-					fieldUi = Instantiate(prefab);
-				}
+				GameObject fieldUi = GetKindOfColumn(rowData, colS, unusedColumns);
+				//string columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
+				//if (columnUiName == null) {
+				//	string errorMessage = "could not resolve column UI name from " + colS.data.columnUi+"\n"+errLog.GetErrorString();
+				//	Show.Log(errorMessage);
+				//	//columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
+				//	throw new Exception(errorMessage);
+				//}
+				//// check if there's a version of it from earlier, probably followed by "(Clone)"
+				//for (int i = 0; i < unusedColumns.Count; ++i) {
+				//	if (unusedColumns[i].name.StartsWith(columnUiName)) {
+				//		fieldUi = unusedColumns[i];
+				//		unusedColumns.RemoveAt(i);
+				//		break;
+				//	}
+				//}
+				//// otherwise create it
+				//if (fieldUi == null) {
+				//	GameObject prefab = uiPrototypes.GetElement(columnUiName);
+				//	if (prefab == null) {
+				//		columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
+				//		throw new Exception("no such prefab \""+columnUiName+"\" in data sheet initialization script. valid values: ["+
+				//			uiPrototypes.transform.JoinToString()+"]\n---\n"+ colS.data.columnUi+"\n---\n"+columnSetup);
+				//	}
+				//	fieldUi = Instantiate(prefab);
+				//}
 
 				if (colS.data.onClick.IsSyntax) {
-					ClickableScriptedCell clickable = fieldUi.GetComponent<ClickableScriptedCell>();
-					UiClick.ClearOnClick(fieldUi);
-					if (fieldUi != null) { Destroy(clickable); }
-					clickable = fieldUi.AddComponent<ClickableScriptedCell>();
-					clickable.Set(rowData.obj, colS.data.onClick);
-					clickable.onError += ShowError;
-					clickable.debugMetaData = colS.data.onClick.StringifySmall();
-					if (!UiClick.AddOnButtonClickIfNotAlready(fieldUi, clickable, clickable.OnClick)) {
-						UiClick.AddOnPanelClickIfNotAlready(fieldUi, clickable, clickable.OnClick);
-					}
+					ApplyOnClick(fieldUi, rowData, colS);
+					//ClickableScriptedCell clickable = fieldUi.GetComponent<ClickableScriptedCell>();
+					//UiClick.ClearOnClick(fieldUi);
+					//if (fieldUi != null) { Destroy(clickable); }
+					//clickable = fieldUi.AddComponent<ClickableScriptedCell>();
+					//clickable.Set(rowData.obj, colS.data.onClick);
+					//clickable.onError += ShowError;
+					//clickable.debugMetaData = colS.data.onClick.StringifySmall();
+					//if (!UiClick.AddOnButtonClickIfNotAlready(fieldUi, clickable, clickable.OnClick)) {
+					//	UiClick.AddOnPanelClickIfNotAlready(fieldUi, clickable, clickable.OnClick);
+					//}
 				}
 
 				fieldUi.SetActive(true);
@@ -470,12 +462,68 @@ namespace NonStandard.GameUi.DataSheet {
 			rect = rObj.GetComponent<RectTransform>();
 			rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, rowCursor.x);
 			rect.transform.SetParent(contentRectangle, false);
-			if (!float.IsNaN(yPosition)) {
+			if (!float.IsNaN(yPos)) {
 				//rect.anchoredPosition = new Vector2(0, -yPosition);
 				//rect.localPosition = new Vector2(0, -yPosition);
-				rObj.LocalPosition = new Vector2(0, -yPosition);
+				rObj.LocalPosition = new Vector2(0, -yPos);
 			}
 			return rObj.gameObject;
+		}
+
+		private List<GameObject> DisconnectColumnUiElements(DataSheetRow rObj) {
+			List<GameObject> unusedColumns = new List<GameObject>();
+			for (int i = 0; i < rObj.transform.childCount; ++i) {
+				GameObject fieldUi = rObj.transform.GetChild(i).gameObject;
+				if (fieldUi == null) { throw new Exception("a null child in the row? wat"); }
+				unusedColumns.Add(fieldUi);
+			}
+			while (rObj.transform.childCount > 0) {
+				rObj.transform.GetChild(rObj.transform.childCount - 1).SetParent(null, false);
+			}
+			return unusedColumns;
+		}
+
+		private GameObject GetKindOfColumn(RowData rowData, DataSheetUnityColumnData.ColumnSetting colS, List<GameObject> unusedColumns) {
+			string columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
+			if (columnUiName == null) {
+				string errorMessage = "could not resolve column UI name from " + colS.data.columnUi + "\n" + errLog.GetErrorString();
+				Show.Log(errorMessage);
+				//columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
+				throw new Exception(errorMessage);
+			}
+			GameObject fieldUi = null;
+			// check if there's a version of it from earlier, probably followed by "(Clone)"
+			for (int i = 0; i < unusedColumns.Count; ++i) {
+				if (unusedColumns[i].name.StartsWith(columnUiName)) {
+					fieldUi = unusedColumns[i];
+					unusedColumns.RemoveAt(i);
+					break;
+				}
+			}
+			// otherwise create it
+			if (fieldUi == null) {
+				GameObject prefab = uiPrototypes.GetElement(columnUiName);
+				if (prefab == null) {
+					columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
+					throw new Exception("no such prefab \"" + columnUiName + "\" in data sheet initialization script. valid values: [" +
+						uiPrototypes.transform.JoinToString() + "]\n---\n" + colS.data.columnUi + "\n---\n" + columnSetup);
+				}
+				fieldUi = Instantiate(prefab);
+			}
+			return fieldUi;
+		}
+
+		private void ApplyOnClick(GameObject fieldUi, RowData rowData, DataSheetUnityColumnData.ColumnSetting colS) {
+			ClickableScriptedCell clickable = fieldUi.GetComponent<ClickableScriptedCell>();
+			UiClick.ClearOnClick(fieldUi);
+			if (fieldUi != null) { Destroy(clickable); }
+			clickable = fieldUi.AddComponent<ClickableScriptedCell>();
+			clickable.Set(rowData.obj, colS.data.onClick);
+			clickable.onError += ShowError;
+			clickable.debugMetaData = colS.data.onClick.StringifySmall();
+			if (!UiClick.AddOnButtonClickIfNotAlready(fieldUi, clickable, clickable.OnClick)) {
+				UiClick.AddOnPanelClickIfNotAlready(fieldUi, clickable, clickable.OnClick);
+			}
 		}
 
 		public void RefreshColumnText(int column, ITokenErrLog errLog) {
@@ -519,7 +567,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public void MoveRow(int oldIndex, int newIndex) {
 			data.MoveRow(oldIndex, newIndex);
 			contentRectangle.GetChild(oldIndex).SetSiblingIndex(newIndex);
-			RefreshRowUi();
+			RefreshAllRowUi();
 			onNotifyReorder?.Invoke(data.rows);
 		}
 		public void RemoveRow(int index) {
@@ -527,7 +575,7 @@ namespace NonStandard.GameUi.DataSheet {
 			child.SetParent(null);
 			Destroy(child.gameObject);
 			data.RemoveRow(index);
-			RefreshRowUi();
+			RefreshAllRowUi();
 		}
 		public void RemoveColumn(int index) {
 			Transform column = headerRectangle.transform.GetChild(index);
@@ -586,7 +634,7 @@ namespace NonStandard.GameUi.DataSheet {
 		/// uses a dictionary to quickly calculate UI elements for rows, and position them in the view
 		/// </summary>
 		/// TODO refactor this method... something fishy is going on in here maybe.
-		public Dictionary<object, DataSheetRow> RefreshRowUi() {
+		public Dictionary<object, DataSheetRow> RefreshAllRowUi() {
 			Dictionary<object, DataSheetRow> oldMap = MapOfCurrentUi();
 			// check to see if any of the UI rows are not being used by the datasheet by identifying which ones are used for sure
 			Dictionary<object, DataSheetRow> usedMapping = MapOfUiNeededForCurrentData(oldMap);
@@ -598,7 +646,7 @@ namespace NonStandard.GameUi.DataSheet {
 				RectTransform rectOfUiElement = uiElement.GetComponent<RectTransform>();
 				cursor.y -= rectOfUiElement.rect.height;
 			}
-			if (contentRectangle.childCount > data.rows.Count || unused.Count > 0) {
+			if (contentRectangle.childCount > data.rows.Count || (unused != null && unused.Count > 0)) {
 				ClearUnusedUiElements(oldMap, unused);
 			}
 			contentAreaSize.y = -cursor.y;
@@ -647,8 +695,9 @@ namespace NonStandard.GameUi.DataSheet {
 
 		private DataSheetRow PutDataIntoUiElement(RowData rd, int i, Vector2 cursor, 
 		Dictionary<object, DataSheetRow> currentUiData, List<DataSheetRow> unused) {
+			DataSheetRow rObj = null;
 			// if this row data is missing a UI element
-			if (currentUiData.TryGetValue(rd.obj, out DataSheetRow rObj)) {
+			if (currentUiData.TryGetValue(rd.obj, out rObj)) {
 				// Debug.Log("reusing UI row for "+rd.obj);
 				data.RefreshRowData(rd, data.columnSettings);
 				UpdateRowData(rObj, i, rd, -cursor.y);
@@ -664,7 +713,7 @@ namespace NonStandard.GameUi.DataSheet {
 		Dictionary<object, DataSheetRow> usedMapping) {
 			DataSheetRow rObj;
 			// use one of the unused elements if there is one
-			if (unused.Count > 0) {
+			if (unused != null && unused.Count > 0) {
 				rObj = unused[unused.Count - 1];
 				unused.RemoveAt(unused.Count - 1);
 				UpdateRowData(rObj, i, rd, yPosition);
@@ -681,34 +730,36 @@ namespace NonStandard.GameUi.DataSheet {
 			for (int i = contentRectangle.childCount - 1; i >= data.rows.Count; --i) {
 				DataSheetRow rObj = contentRectangle.GetChild(i).GetComponent<DataSheetRow>();
 				oldMap.Remove(rObj.obj);
-				if (!unused.Contains(rObj)) { unused.Add(rObj); }
+				if (unused != null && !unused.Contains(rObj)) { unused.Add(rObj); }
 			}
-			if (debugNoisy) {
-				Show.Log("deleting extra elements: " + unused.JoinToString(", ", go => {
-					DataSheetRow ro = go.GetComponent<DataSheetRow>();
-					if (ro == null) return "<null>";
-					if (ro.obj == null) return "<null obj>";
-					return ro.obj.ToString();
-				}));
+			if (unused != null) {
+				if (debugNoisy) {
+					Show.Log("deleting extra elements: " + unused.JoinToString(", ", go => {
+						DataSheetRow ro = go.GetComponent<DataSheetRow>();
+						if (ro == null) return "<null>";
+						if (ro.obj == null) return "<null obj>";
+						return ro.obj.ToString();
+					}));
+				}
+				for (int i = unused.Count - 1; i >= 0; --i) {
+					unused[i].transform.SetParent(null);
+					Destroy(unused[i].gameObject);
+				}
+				unused.Clear();
 			}
-			for (int i = unused.Count - 1; i >= 0; --i) {
-				unused[i].transform.SetParent(null);
-				Destroy(unused[i].gameObject);
-			}
-			unused.Clear();
 		}
 
 		public void SetSortState(int column, SortState sortState) {
 			RefreshRowAndColumnUi();
 			data.SetSortState(column, sortState);
-			RefreshRowUi();
+			RefreshAllRowUi();
 		}
 		public object GetItem(int index) { return data.rows[index].obj; }
 		public object SetItem(int index, object dataModel) { return data.rows[index].obj = dataModel; }
 		public int IndexOf(object dataModel) { return data.IndexOf(dataModel); }
 		public int IndexOf(Func<object, bool> predicate) { return data.IndexOf(predicate); }
 		public void RefreshRowAndColumnUi() {
-			RefreshRowUi();
+			RefreshAllRowUi();
 			if (data.rows.Count != contentRectangle.childCount) {
 				Debug.LogWarning($"contentRectangle ({contentRectangle.childCount}) does not reflect data.rows ({data.rows.Count})");
 			}
@@ -723,7 +774,7 @@ namespace NonStandard.GameUi.DataSheet {
 		public void Sort() {
 			RefreshRowAndColumnUi();
 			if (data.Sort()) {
-				RefreshRowUi();
+				RefreshAllRowUi();
 			}
 		}
 		public DataSheetUnityColumnData.ColumnSetting GetColumn(int index) { return data.GetColumn(index); }
