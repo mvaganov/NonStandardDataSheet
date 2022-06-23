@@ -393,51 +393,16 @@ namespace NonStandard.GameUi.DataSheet {
 			for (int c = 0; c < data.columnSettings.Count; ++c) {
 				DataSheetUnityColumnData.ColumnSetting colS = data.columnSettings[c];
 				GameObject fieldUi = GetKindOfColumn(rowData, colS, unusedColumns);
-				//string columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
-				//if (columnUiName == null) {
-				//	string errorMessage = "could not resolve column UI name from " + colS.data.columnUi+"\n"+errLog.GetErrorString();
-				//	Show.Log(errorMessage);
-				//	//columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
-				//	throw new Exception(errorMessage);
-				//}
-				//// check if there's a version of it from earlier, probably followed by "(Clone)"
-				//for (int i = 0; i < unusedColumns.Count; ++i) {
-				//	if (unusedColumns[i].name.StartsWith(columnUiName)) {
-				//		fieldUi = unusedColumns[i];
-				//		unusedColumns.RemoveAt(i);
-				//		break;
-				//	}
-				//}
-				//// otherwise create it
-				//if (fieldUi == null) {
-				//	GameObject prefab = uiPrototypes.GetElement(columnUiName);
-				//	if (prefab == null) {
-				//		columnUiName = colS.data.columnUi.ResolveString(errLog, rowData.obj);
-				//		throw new Exception("no such prefab \""+columnUiName+"\" in data sheet initialization script. valid values: ["+
-				//			uiPrototypes.transform.JoinToString()+"]\n---\n"+ colS.data.columnUi+"\n---\n"+columnSetup);
-				//	}
-				//	fieldUi = Instantiate(prefab);
-				//}
-
 				if (colS.data.onClick.IsSyntax) {
 					ApplyOnClick(fieldUi, rowData, colS);
-					//ClickableScriptedCell clickable = fieldUi.GetComponent<ClickableScriptedCell>();
-					//UiClick.ClearOnClick(fieldUi);
-					//if (fieldUi != null) { Destroy(clickable); }
-					//clickable = fieldUi.AddComponent<ClickableScriptedCell>();
-					//clickable.Set(rowData.obj, colS.data.onClick);
-					//clickable.onError += ShowError;
-					//clickable.debugMetaData = colS.data.onClick.StringifySmall();
-					//if (!UiClick.AddOnButtonClickIfNotAlready(fieldUi, clickable, clickable.OnClick)) {
-					//	UiClick.AddOnPanelClickIfNotAlready(fieldUi, clickable, clickable.OnClick);
-					//}
 				}
-
 				fieldUi.SetActive(true);
 				fieldUi.transform.SetParent(rObj.transform, false);
 				fieldUi.transform.SetSiblingIndex(c);
 				//columns[c] = data.RefreshValue(rowIndex, c, errLog);
 				//if (errLog.HasError()) { throw new Exception(errLog.GetErrorString()); }
+
+				// TODO check if this value is correct?
 				object value = columns[c];
 				//Debug.Log("  "+value+" ::::: "+data.columnSettings[c].editPath?.JoinToString() ?? "NOPATH?"); // TODO why is this a different (wrong) value if it is not the first element in the table?
 				if (value != null) {
