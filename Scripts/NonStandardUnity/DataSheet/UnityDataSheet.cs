@@ -679,9 +679,10 @@ namespace NonStandard.GameUi.DataSheet {
 			DataSheetRow rObj;
 			// use one of the unused elements if there is one
 			if (unused != null && unused.Count > 0) {
+				// something breaks in here?
 				rObj = unused[unused.Count - 1];
 				unused.RemoveAt(unused.Count - 1);
-				UpdateRowData(rObj, i, rd, yPosition);
+				UpdateRowData(rObj, i, data.rows[i], yPosition);
 			} else {
 				// create he UI element, and put it into the content rectangle
 				rObj = CreateRow(i, data.rows[i], yPosition);
