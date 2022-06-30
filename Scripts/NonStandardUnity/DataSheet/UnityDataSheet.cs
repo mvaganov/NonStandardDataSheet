@@ -371,20 +371,22 @@ namespace NonStandard.GameUi.DataSheet {
 			popup.Hide();
 		}
 
-		DataSheetRow CreateRow(int rowIndex, RowData rowData, float yPosition = float.NaN) {
+		DataSheetRow CreateRow(int rowIndex, float yPosition = float.NaN) {
+			RowData rowData = data.rows[rowIndex];
 			GameObject rowUi = Instantiate(uiPrototypes.dataSheetRow.gameObject);
 			DataSheetRow rObj = rowUi.GetComponent<DataSheetRow>();
 			if (rObj == null) { throw new Exception("RowUI prefab must have " + nameof(DataSheetRow) + " component"); }
 			rObj.rowData = rowData;
 			if (rObj.rowData == null) { throw new Exception("something bad. where is the object that this row is for?"); }
 			rowUi.SetActive(true);
-			UpdateRowData(rObj, rowIndex, rowData, yPosition);
+			UpdateRowData(rObj, rowIndex, yPosition);
 			if (rowData.obj is IHasUiElement hasUi) {
 				hasUi.UiElement = rObj.gameObject;
 			}
 			return rObj;
 		}
-		public GameObject UpdateRowData(DataSheetRow rObj, int rowIndex, RowData rowData, float yPos = float.NaN) {
+		public GameObject UpdateRowData(DataSheetRow rObj, int rowIndex, float yPos = float.NaN) {
+			RowData rowData = data.rows[rowIndex];
 			object[] columns = rowData.columns;
 			Vector2 rowCursor = Vector2.zero;
 			RectTransform rect;
@@ -578,8 +580,7 @@ namespace NonStandard.GameUi.DataSheet {
 			Vector2 cursor = Vector2.zero;
 			Dictionary<object, DataSheetRow> usedMapping = new Dictionary<object, DataSheetRow>(); 
 			for (int i = 0; i < data.rows.Count; ++i) {
-				RowData rd = data.rows[i];
-				DataSheetRow rObj = CreateRow(i, data.rows[i], -cursor.y);
+				DataSheetRow rObj = CreateRow(i, -cursor.y);
 				//Debug.Log("creating row for "+rd.obj);
 				rObj.transform.SetParent(contentRectangle);
 				usedMapping[rObj.obj] = rObj;
@@ -607,7 +608,7 @@ namespace NonStandard.GameUi.DataSheet {
 			Vector2 cursor = Vector2.zero;
 			// go through all of the row elements and put the row UI elements in the correct spot
 			for(int i = 0; i < data.rows.Count; ++i) {
-				DataSheetRow uiElement = PutDataIntoUiElement(data.rows[i], i, cursor, usedMapping, unused);
+				DataSheetRow uiElement = PutDataIntoUiElement(i, cursor, usedMapping, unused);
 				RectTransform rectOfUiElement = uiElement.GetComponent<RectTransform>();
 				cursor.y -= rectOfUiElement.rect.height;
 			}
@@ -658,34 +659,35 @@ namespace NonStandard.GameUi.DataSheet {
 			return unused;
 		}
 
-		private DataSheetRow PutDataIntoUiElement(RowData rd, int i, Vector2 cursor, 
+		private DataSheetRow PutDataIntoUiElement(int i, Vector2 cursor, 
 		Dictionary<object, DataSheetRow> currentUiData, List<DataSheetRow> unused) {
-			DataSheetRow rObj = null;
+			RowData rd = data.rows[i];
 			// if this row data is missing a UI element
-			if (currentUiData.TryGetValue(rd.obj, out rObj)) {
+			if (currentUiData.TryGetValue(rd.obj, out DataSheetRow rObj)) {
 				// Debug.Log("reusing UI row for "+rd.obj);
 				data.RefreshRowData(rd, data.columnSettings);
-				UpdateRowData(rObj, i, rd, -cursor.y);
+				UpdateRowData(rObj, i, -cursor.y);
 			} else {
-				rObj = GiveDataModelSomeUi(unused, i, rd, -cursor.y, currentUiData);
+				rObj = GiveDataModelSomeUi(unused, i, -cursor.y, currentUiData);
 			}
 			rObj.transform.SetSiblingIndex(i);
 			rObj.LocalPosition = cursor;
 			return rObj;
 		}
 
-		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int i, RowData rd, float yPosition,
+		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int i, float yPosition,
 		Dictionary<object, DataSheetRow> usedMapping) {
 			DataSheetRow rObj;
+			//if (rd != data.rows[i]) Debug.Log("weird "+i);
 			// use one of the unused elements if there is one
 			if (unused != null && unused.Count > 0) {
 				// something breaks in here?
 				rObj = unused[unused.Count - 1];
 				unused.RemoveAt(unused.Count - 1);
-				UpdateRowData(rObj, i, data.rows[i], yPosition);
+				UpdateRowData(rObj, i, yPosition);
 			} else {
 				// create he UI element, and put it into the content rectangle
-				rObj = CreateRow(i, data.rows[i], yPosition);
+				rObj = CreateRow(i, yPosition);
 			}
 			rObj.transform.SetParent(contentRectangle);
 			usedMapping[rObj.obj] = rObj;
