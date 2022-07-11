@@ -519,7 +519,7 @@ namespace NonStandard.GameUi.DataSheet {
 			Proc.Enqueue(RefreshContentSize); // wait one frame, till after child UI components recalculate
 		}
 		public void ResizeColumnWidth(int column, float oldWidth, float newWidth) {
-			//Show.Log("TODO resize width of column "+column+" from "+oldWidth+" to "+newWidth);
+			//Show.Log("resize width of column "+column+" from "+oldWidth+" to "+newWidth);
 			data.columnSettings[column].data.widthOfColumn = newWidth;
 			RefreshUi();
 		}
@@ -663,7 +663,8 @@ namespace NonStandard.GameUi.DataSheet {
 		Dictionary<object, DataSheetRow> currentUiData, List<DataSheetRow> unused) {
 			RowData rd = data.rows[i];
 			// if this row data is missing a UI element
-			if (currentUiData.TryGetValue(rd.obj, out DataSheetRow rObj)) {
+			DataSheetRow rObj;
+			if (currentUiData.TryGetValue(rd.obj, out rObj)) {
 				// Debug.Log("reusing UI row for "+rd.obj);
 				data.RefreshRowData(rd, data.columnSettings);
 				UpdateRowData(rObj, i, -cursor.y);
@@ -675,19 +676,37 @@ namespace NonStandard.GameUi.DataSheet {
 			return rObj;
 		}
 
-		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int i, float yPosition,
+		private DataSheetRow GiveDataModelSomeUi(List<DataSheetRow> unused, int rowIndex, float yPosition,
 		Dictionary<object, DataSheetRow> usedMapping) {
-			DataSheetRow rObj;
+			DataSheetRow rObj = null;
 			//if (rd != data.rows[i]) Debug.Log("weird "+i);
 			// use one of the unused elements if there is one
 			if (unused != null && unused.Count > 0) {
-				// something breaks in here?
-				rObj = unused[unused.Count - 1];
-				unused.RemoveAt(unused.Count - 1);
-				UpdateRowData(rObj, i, yPosition);
-			} else {
+				// find the existing row object for this specific item, if it exists. special logic for key/value pairs
+				ComputeHashTable<string, object>.KV keyValuePair = data.rows[rowIndex].obj as ComputeHashTable<string, object>.KV;
+				bool IsThisTheObject(DataSheetRow rowUi) => rowUi.obj == data.rows[rowIndex].obj;
+				bool IsThisTheObjectKeyValuePair(DataSheetRow rowUi) {
+					if (rowUi.obj == data.rows[rowIndex].obj) return true;
+					ComputeHashTable<string, object>.KV kvp = rowUi.obj as ComputeHashTable<string, object>.KV;
+					if (kvp == null) return false;
+					return keyValuePair.key == kvp.key;
+				}
+				Predicate<DataSheetRow> predicate = (keyValuePair == null) 
+					? new Predicate<DataSheetRow> (IsThisTheObject)
+					: new Predicate<DataSheetRow>(IsThisTheObjectKeyValuePair);
+				int foundIndex = unused.FindIndex(predicate);
+				if (foundIndex >= 0) {
+					rObj = unused[foundIndex];
+					unused.RemoveAt(foundIndex);
+					UpdateRowData(rObj, rowIndex, yPosition);
+				//	Debug.Log("~~~~~~~~~~~found "+ data.rows[rowIndex].obj + " at index "+foundIndex);
+				//} else {
+				//	Debug.Log("~~~~~~~~~~~NOT found " + data.rows[rowIndex].obj + " " + unused.ConvertAll(r => r.obj.GetType()).JoinToString());
+				}
+			}
+			if (rObj == null) {
 				// create he UI element, and put it into the content rectangle
-				rObj = CreateRow(i, yPosition);
+				rObj = CreateRow(rowIndex, yPosition);
 			}
 			rObj.transform.SetParent(contentRectangle);
 			usedMapping[rObj.obj] = rObj;
