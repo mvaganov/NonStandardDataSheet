@@ -1,3 +1,6 @@
+using NonStandard.Data.Parse;
+using NonStandard.Extension;
+using NonStandard.Ui;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,6 +20,17 @@ public class ColorizeTMProText : MonoBehaviour {
 	}
 
 	void Start() {
+		Tokenizer tok = new Tokenizer();
+		string text = UiText.GetText(gameObject);
+		tok.Tokenize(text);
+		//for (int i = 0; i < tok.Tokens.Count; i++) {
+		//	Debug.
+		//}
+		Debug.Log(tok.Tokens.Count);
+		Debug.Log(tok.Tokens.JoinToString(",", t => {
+			return t.ToString();
+		}));
+		//Debug.Log(tok.DebugPrint());
 		// generate dictionary of syntax tree color list
 		// calculate syntax tree
 		// go through text and apply color based on color dictionary
