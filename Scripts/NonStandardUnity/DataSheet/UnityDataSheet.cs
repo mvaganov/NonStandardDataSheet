@@ -119,10 +119,18 @@ namespace NonStandard.GameUi.DataSheet {
 			//Debug.Log(columnSetup);
 			Tokenizer tokenizer = new Tokenizer();
 			CodeConvert.TryParse(columnSetup, out UnityColumnData[] columns, null, tokenizer);
+			// the script may require data elements from the columns to finish parsing, so errors are likely for feature rich column scripts.
 			if (tokenizer.HasError()) {
 				ShowError(tokenizer.GetErrorString());
-				Debug.LogError("error parsing column structure: " + tokenizer.GetErrorString());
-				return;
+				Debug.LogError("<color=#0f0>"+transform.HierarchyPath()+"</color> error parsing column structure: " + tokenizer.GetErrorString());
+				string script = tokenizer.GetString();
+				string fine = script.Substring(0, tokenizer.errors[0].index);
+				string problem = script.Substring(tokenizer.errors[0].index);
+				Debug.Log(fine+"<color=#f00>"+problem+"</color>");
+				tokenizer = new Tokenizer();
+				/// try it again after the warning --break point here
+				CodeConvert.TryParse(columnSetup, out columns, null, tokenizer);
+				//return;
 			}
 			int index = 0;
 			//data.AddRange(list, tokenizer);
